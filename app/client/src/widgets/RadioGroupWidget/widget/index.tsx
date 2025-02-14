@@ -1,20 +1,37 @@
-import React from "react";
 import { Alignment } from "@blueprintjs/core";
-import { isArray, compact, isNumber } from "lodash";
+import { compact, isArray, isNumber } from "lodash";
+import React from "react";
 
-import BaseWidget, { WidgetProps, WidgetState } from "../../BaseWidget";
-import { TextSize, WidgetType } from "constants/WidgetConstants";
-import { GRID_DENSITY_MIGRATION_V1 } from "widgets/constants";
-import { AutocompleteDataType } from "utils/autocomplete/TernServer";
-import { EventType } from "constants/AppsmithActionConstants/ActionConstants";
-import {
-  ValidationResponse,
-  ValidationTypes,
-} from "constants/WidgetValidation";
-import { EvaluationSubstitutionType } from "entities/DataTree/dataTreeFactory";
-import { RadioOption } from "../constants";
 import { LabelPosition } from "components/constants";
+import { EventType } from "constants/AppsmithActionConstants/ActionConstants";
+import type { TextSize } from "constants/WidgetConstants";
+import type { ValidationResponse } from "constants/WidgetValidation";
+import { ValidationTypes } from "constants/WidgetValidation";
+import type { SetterConfig, Stylesheet } from "entities/AppTheming";
+import { EvaluationSubstitutionType } from "ee/entities/DataTree/types";
+import { AutocompleteDataType } from "utils/autocomplete/AutocompleteDataType";
+import {
+  isAutoHeightEnabledForWidget,
+  DefaultAutocompleteDefinitions,
+  isCompactMode,
+} from "widgets/WidgetUtils";
+import type { WidgetProps, WidgetState } from "../../BaseWidget";
+import BaseWidget from "../../BaseWidget";
 import RadioGroupComponent from "../component";
+import type { RadioOption } from "../constants";
+import { isAutoLayout } from "layoutSystems/autolayout/utils/flexWidgetUtils";
+import type {
+  AnvilConfig,
+  AutocompletionDefinitions,
+} from "WidgetProvider/constants";
+import IconSVG from "../icon.svg";
+import ThumbnailSVG from "../thumbnail.svg";
+import type {
+  SnipingModeProperty,
+  PropertyUpdates,
+} from "WidgetProvider/constants";
+import { WIDGET_TAGS } from "constants/WidgetConstants";
+import { FlexVerticalAlignment } from "layoutSystems/common/utils/constants";
 
 /**
  * Validation rules:
@@ -24,37 +41,51 @@ import RadioGroupComponent from "../component";
  */
 export function optionsCustomValidation(
   options: unknown,
+  // TODO: Fix this the next time the file is edited
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   props: any,
+  // TODO: Fix this the next time the file is edited
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   _: any,
 ): ValidationResponse {
   const validationUtil = (
     options: { label: string; value: string | number }[],
+    // TODO: Fix this the next time the file is edited
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     _: any,
   ) => {
     let _isValid = true;
-    let message = "";
+    let message = { name: "", message: "" };
     let valueType = "";
     const uniqueLabels: Record<string | number, string> = {};
 
     for (let i = 0; i < options.length; i++) {
       const { label, value } = options[i];
+
       if (!valueType) {
         valueType = typeof value;
       }
+
       //Checks the uniqueness all the values in the options
       if (!uniqueLabels.hasOwnProperty(value)) {
         uniqueLabels[value] = "";
       } else {
         _isValid = false;
-        message = "path:value must be unique. Duplicate values found";
+        message = {
+          name: "ValidationError",
+          message: "path:value must be unique. Duplicate values found",
+        };
         break;
       }
 
       //Check if the required field "label" is present:
       if (!label) {
         _isValid = false;
-        message =
-          "Invalid entry at index: " + i + ". Missing required key: label";
+        message = {
+          name: "ValidationError",
+          message:
+            "Invalid entry at index: " + i + ". Missing required key: label",
+        };
         break;
       }
 
@@ -65,25 +96,34 @@ export function optionsCustomValidation(
         (typeof label !== "string" && typeof label !== "number")
       ) {
         _isValid = false;
-        message =
-          "Invalid entry at index: " +
-          i +
-          ". Value of key: label is invalid: This value does not evaluate to type string";
+        message = {
+          name: "ValidationError",
+          message:
+            "Invalid entry at index: " +
+            i +
+            ". Value of key: label is invalid: This value does not evaluate to type string",
+        };
         break;
       }
 
       //Check if all the data types for the value prop is the same.
       if (typeof value !== valueType) {
         _isValid = false;
-        message = "All value properties in options must have the same type";
+        message = {
+          name: "TypeError",
+          message: "All value properties in options must have the same type",
+        };
         break;
       }
 
       //Check if the each object has value property.
       if (_.isNil(value)) {
         _isValid = false;
-        message =
-          'This value does not evaluate to type Array<{ "label": "string", "value": "string" | number }>';
+        message = {
+          name: "TypeError",
+          message:
+            'This value does not evaluate to type Array<{ "label": "string", "value": "string" | number }>',
+        };
         break;
       }
     }
@@ -99,9 +139,14 @@ export function optionsCustomValidation(
     isValid: false,
     parsed: [],
     messages: [
-      'This value does not evaluate to type Array<{ "label": "string", "value": "string" | number }>',
+      {
+        name: "TypeError",
+        message:
+          'This value does not evaluate to type Array<{ "label": "string", "value": "string" | number }>',
+      },
     ],
   };
+
   try {
     if (_.isString(options)) {
       options = JSON.parse(options as string);
@@ -116,9 +161,14 @@ export function optionsCustomValidation(
     return invalidResponse;
   }
 }
+
 function defaultOptionValidation(
   value: unknown,
+  // TODO: Fix this the next time the file is edited
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   props: any,
+  // TODO: Fix this the next time the file is edited
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   _: any,
 ): ValidationResponse {
   //Checks if the value is not of object type in {{}}
@@ -126,7 +176,12 @@ function defaultOptionValidation(
     return {
       isValid: false,
       parsed: JSON.stringify(value, null, 2),
-      messages: ["This value does not evaluate to type: string or number"],
+      messages: [
+        {
+          name: "TypeError",
+          message: "This value does not evaluate to type: string or number",
+        },
+      ],
     };
   }
 
@@ -135,7 +190,12 @@ function defaultOptionValidation(
     return {
       isValid: false,
       parsed: value,
-      messages: ["This value does not evaluate to type: string or number"],
+      messages: [
+        {
+          name: "TypeError",
+          message: "This value does not evaluate to type: string or number",
+        },
+      ],
     };
   }
 
@@ -146,6 +206,122 @@ function defaultOptionValidation(
 }
 
 class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
+  static type = "RADIO_GROUP_WIDGET";
+
+  static getConfig() {
+    return {
+      name: "Radio Group",
+      iconSVG: IconSVG,
+      thumbnailSVG: ThumbnailSVG,
+      tags: [WIDGET_TAGS.TOGGLES],
+      needsMeta: true,
+      searchTags: ["choice"],
+    };
+  }
+
+  static getFeatures() {
+    return {
+      dynamicHeight: {
+        sectionIndex: 3,
+        active: true,
+      },
+    };
+  }
+
+  static getDefaults() {
+    return {
+      rows: 6,
+      columns: 20,
+      animateLoading: true,
+      label: "Label",
+      labelPosition: LabelPosition.Top,
+      labelAlignment: Alignment.LEFT,
+      labelTextSize: "0.875rem",
+      labelWidth: 5,
+      options: [
+        { label: "Yes", value: "Y" },
+        { label: "No", value: "N" },
+      ],
+      defaultOptionValue: "Y",
+      isRequired: false,
+      isDisabled: false,
+      isInline: true,
+      alignment: Alignment.LEFT,
+      widgetName: "RadioGroup",
+      version: 1,
+      flexVerticalAlignment: FlexVerticalAlignment.Top,
+    };
+  }
+
+  static getMethods() {
+    return {
+      getSnipingModeUpdates: (
+        propValueMap: SnipingModeProperty,
+      ): PropertyUpdates[] => {
+        return [
+          {
+            propertyPath: "options",
+            propertyValue: propValueMap.data,
+            isDynamicPropertyPath: true,
+          },
+        ];
+      },
+    };
+  }
+
+  static getAutoLayoutConfig() {
+    return {
+      defaults: {
+        columns: 14,
+        rows: 7,
+      },
+      disabledPropsDefaults: {
+        labelPosition: LabelPosition.Top,
+      },
+      autoDimension: {
+        height: true,
+      },
+      widgetSize: [
+        {
+          viewportMinWidth: 0,
+          configuration: () => {
+            return {
+              minWidth: "240px",
+              minHeight: "70px",
+            };
+          },
+        },
+      ],
+      disableResizeHandles: {
+        vertical: true,
+      },
+    };
+  }
+
+  static getAnvilConfig(): AnvilConfig | null {
+    return {
+      isLargeWidget: false,
+      widgetSize: {
+        maxHeight: {},
+        maxWidth: {},
+        minHeight: { base: "70px" },
+        minWidth: { base: "240px" },
+      },
+    };
+  }
+
+  static getAutocompleteDefinitions(): AutocompletionDefinitions {
+    return {
+      "!doc":
+        "Radio widget lets the user choose only one option from a predefined set of options. It is quite similar to a SingleSelect Dropdown in its functionality",
+      "!url": "https://docs.appsmith.com/widget-reference/radio",
+      isVisible: DefaultAutocompleteDefinitions.isVisible,
+      options: "[$__dropdownOption__$]",
+      selectedOptionValue: "string",
+      isRequired: "bool",
+    };
+  }
+
   static getPropertyPaneContentConfig() {
     return [
       {
@@ -164,8 +340,7 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
               params: {
                 fn: optionsCustomValidation,
                 expected: {
-                  type:
-                    'Array<{ "label": "string", "value": "string" | number}>',
+                  type: 'Array<{ "label": "string", "value": "string" | number}>',
                   example: `[{"label": "One", "value": "one"}]`,
                   autocompleteDataType: AutocompleteDataType.STRING,
                 },
@@ -177,7 +352,7 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
           {
             helpText: "Sets a default selected option",
             propertyName: "defaultOptionValue",
-            label: "Default Selected Value",
+            label: "Default selected value",
             placeholderText: "Y",
             controlType: "INPUT_TEXT",
             isBindProperty: true,
@@ -220,11 +395,13 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
             label: "Position",
             controlType: "ICON_TABS",
             fullWidth: true,
+            hidden: isAutoLayout,
             options: [
               { label: "Auto", value: LabelPosition.Auto },
               { label: "Left", value: LabelPosition.Left },
               { label: "Top", value: LabelPosition.Top },
             ],
+            defaultValue: LabelPosition.Top,
             isBindProperty: false,
             isTriggerProperty: false,
             validation: { type: ValidationTypes.TEXT },
@@ -234,13 +411,14 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
             propertyName: "labelAlignment",
             label: "Alignment",
             controlType: "LABEL_ALIGNMENT_OPTIONS",
+            fullWidth: false,
             options: [
               {
-                icon: "LEFT_ALIGN",
+                startIcon: "align-left",
                 value: Alignment.LEFT,
               },
               {
-                icon: "RIGHT_ALIGN",
+                startIcon: "align-right",
                 value: Alignment.RIGHT,
               },
             ],
@@ -292,6 +470,16 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
         sectionName: "General",
         children: [
           {
+            helpText: "Show help text or details about current input",
+            propertyName: "labelTooltip",
+            label: "Tooltip",
+            controlType: "INPUT_TEXT",
+            placeholderText: "Value must be atleast 6 chars",
+            isBindProperty: true,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+          },
+          {
             helpText: "Controls the visibility of the widget",
             propertyName: "isVisible",
             label: "Visible",
@@ -324,7 +512,7 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
           },
           {
             propertyName: "animateLoading",
-            label: "Animate Loading",
+            label: "Animate loading",
             controlType: "SWITCH",
             helpText: "Controls the loading of the widget",
             defaultValue: true,
@@ -339,8 +527,7 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
         sectionName: "Events",
         children: [
           {
-            helpText:
-              "Triggers an action when a user changes the selected option",
+            helpText: "when a user changes the selected option",
             propertyName: "onSelectionChange",
             label: "onSelectionChange",
             controlType: "ACTION_SELECTOR",
@@ -356,11 +543,11 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
   static getPropertyPaneStyleConfig() {
     return [
       {
-        sectionName: "Label Styles",
+        sectionName: "Label styles",
         children: [
           {
             propertyName: "labelTextColor",
-            label: "Font Color",
+            label: "Font color",
             helpText: "Control the color of the label associated",
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
@@ -370,7 +557,7 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
           },
           {
             propertyName: "labelTextSize",
-            label: "Font Size",
+            label: "Font size",
             helpText: "Control the font size of the label associated",
             controlType: "DROP_DOWN",
             defaultValue: "0.875rem",
@@ -415,14 +602,14 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
             propertyName: "labelStyle",
             label: "Emphasis",
             helpText: "Control if the label should be bold or italics",
-            controlType: "BUTTON_TABS",
+            controlType: "BUTTON_GROUP",
             options: [
               {
-                icon: "BOLD_FONT",
+                icon: "text-bold",
                 value: "BOLD",
               },
               {
-                icon: "ITALICS_FONT",
+                icon: "text-italic",
                 value: "ITALIC",
               },
             ],
@@ -441,16 +628,17 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
             helpText: "Sets the alignment of the widget",
             label: "Alignment",
             controlType: "ICON_TABS",
+            defaultValue: Alignment.LEFT,
             fullWidth: true,
             isBindProperty: true,
             isTriggerProperty: false,
             options: [
               {
-                label: "Left",
+                startIcon: "skip-left-line",
                 value: Alignment.LEFT,
               },
               {
-                label: "Right",
+                startIcon: "skip-right-line",
                 value: Alignment.RIGHT,
               },
             ],
@@ -490,10 +678,19 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
     };
   }
 
+  // TODO: Fix this the next time the file is edited
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static getMetaPropertiesMap(): Record<string, any> {
     return {
       selectedOptionValue: undefined,
       isDirty: false,
+    };
+  }
+
+  static getStylesheetConfig(): Stylesheet {
+    return {
+      accentColor: "{{appsmith.theme.colors.primaryColor}}",
+      boxShadow: "none",
     };
   }
 
@@ -506,10 +703,28 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
     }
   }
 
-  getPageView() {
+  static getSetterConfig(): SetterConfig {
+    return {
+      __setters: {
+        setVisibility: {
+          path: "isVisible",
+          type: "boolean",
+        },
+        setDisabled: {
+          path: "isDisabled",
+          type: "boolean",
+        },
+        setData: {
+          path: "options",
+          type: "array",
+        },
+      },
+    };
+  }
+
+  getWidgetView() {
     const {
       alignment,
-      bottomRow,
       isDisabled,
       isInline,
       isLoading,
@@ -521,20 +736,20 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
       labelTextSize,
       options,
       selectedOptionValue,
-      topRow,
       widgetId,
     } = this.props;
 
-    const { componentHeight } = this.getComponentDimensions();
+    const { componentHeight } = this.props;
 
     return (
       <RadioGroupComponent
         accentColor={this.props.accentColor}
         alignment={alignment}
-        compactMode={!((bottomRow - topRow) / GRID_DENSITY_MIGRATION_V1 > 1)}
+        compactMode={isCompactMode(componentHeight)}
         disabled={isDisabled}
         height={componentHeight}
         inline={Boolean(isInline)}
+        isDynamicHeightEnabled={isAutoHeightEnabledForWidget(this.props)}
         key={widgetId}
         labelAlignment={labelAlignment}
         labelPosition={labelPosition}
@@ -542,7 +757,8 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
         labelText={label}
         labelTextColor={labelTextColor}
         labelTextSize={labelTextSize}
-        labelWidth={this.getLabelWidth()}
+        labelTooltip={this.props.labelTooltip}
+        labelWidth={this.props.labelComponentWidth}
         loading={isLoading}
         onRadioSelectionChange={this.onRadioSelectionChange}
         options={isArray(options) ? compact(options) : []}
@@ -555,11 +771,13 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
 
   onRadioSelectionChange = (updatedValue: string) => {
     let newVal;
+
     if (isNumber(this.props.options[0].value)) {
       newVal = parseFloat(updatedValue);
     } else {
       newVal = updatedValue;
     }
+
     // Set isDirty to true when the selection changes
     if (!this.props.isDirty) {
       this.props.updateWidgetMetaProperty("isDirty", true);
@@ -573,10 +791,6 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
       },
     });
   };
-
-  static getWidgetType(): WidgetType {
-    return "RADIO_GROUP_WIDGET";
-  }
 }
 
 export interface RadioGroupWidgetProps extends WidgetProps {
@@ -597,6 +811,7 @@ export interface RadioGroupWidgetProps extends WidgetProps {
   labelStyle?: string;
   isDirty: boolean;
   accentColor: string;
+  labelComponentWidth?: number;
 }
 
 export default RadioGroupWidget;

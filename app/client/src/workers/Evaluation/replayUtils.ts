@@ -1,7 +1,7 @@
 import { get, set } from "lodash";
-import { Diff } from "deep-diff";
+import type { Diff } from "deep-diff";
 
-import { CanvasWidgetsReduxState } from "reducers/entityReducers/canvasWidgetsReducer";
+import type { CanvasWidgetsReduxState } from "reducers/entityReducers/canvasWidgetsReducer";
 
 export type DSLDiff = Diff<CanvasWidgetsReduxState, CanvasWidgetsReduxState>;
 
@@ -19,6 +19,7 @@ const positionProps = [
   "detachFromLayout",
   "noContainerOffset",
   "isCanvas",
+  "height",
 ];
 
 export const TOASTS = "toasts";
@@ -40,6 +41,8 @@ export const WIDGETS = "widgets";
 export function processDiff(
   dsl: CanvasWidgetsReduxState,
   diff: DSLDiff,
+  // TODO: Fix this the next time the file is edited
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   replay: any,
   isUndo: boolean,
 ) {
@@ -58,10 +61,12 @@ export function processDiff(
           isUndo,
           !isUndo,
         );
+
         addToArray(replay, TOASTS, toast);
       } else {
         setPropertyUpdate(replay, [WIDGETS, widgetId, UPDATES], diff.path);
       }
+
       break;
     // element is deleted in dsl
     case "D":
@@ -73,10 +78,12 @@ export function processDiff(
           isUndo,
           isUndo,
         );
+
         addToArray(replay, TOASTS, toast);
       } else {
         setPropertyUpdate(replay, [WIDGETS, widgetId, UPDATES], diff.path);
       }
+
       break;
     // element is edited
     case "E":
@@ -85,6 +92,7 @@ export function processDiff(
       } else {
         setPropertyUpdate(replay, [WIDGETS, widgetId, UPDATES], diff.path);
       }
+
       break;
     default:
       break;
@@ -109,6 +117,7 @@ function createToast(
   isCreated: boolean,
 ) {
   const widgetName = isCreated ? diffWidget.widgetName : dslWidget?.widgetName;
+
   return {
     isCreated,
     isUndo,
@@ -135,6 +144,8 @@ function isPositionUpdate(widgetProperty: string) {
  * @param value
  * @returns
  */
+// TODO: Fix this the next time the file is edited
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function setPropertyUpdate(replay: any, path: string[], value: string[]) {
   const existingPathValue = get(replay, path);
 
@@ -152,6 +163,8 @@ function setPropertyUpdate(replay: any, path: string[], value: string[]) {
  * @param value
  * @returns
  */
+// TODO: Fix this the next time the file is edited
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function addToArray(obj: any, key: string, value: any) {
   if (!obj) return;
 
@@ -168,6 +181,8 @@ function addToArray(obj: any, key: string, value: any) {
  * @param diffs
  * @returns
  */
+// TODO: Fix this the next time the file is edited
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getPathsFromDiff(diffs: any) {
   const paths = [];
 

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -48,21 +49,24 @@ public class SegmentConfig {
 
         final LogProcessor logProcessor = new LogProcessor();
 
-        Analytics analyticsOnAnalytics = Analytics.builder(analyticsWriteKey).log(logProcessor).build();
+        Analytics analyticsOnAnalytics =
+                Analytics.builder(analyticsWriteKey).log(logProcessor).build();
 
         // We use a different analytics instance for sending events about the analytics system itself so we don't end up
         // in a recursive state.
         final LogProcessor logProcessorWithErrorHandler = new LogProcessor();
-        final Analytics analytics = Analytics.builder(analyticsWriteKey).log(logProcessorWithErrorHandler).build();
+        final Analytics analytics = Analytics.builder(analyticsWriteKey)
+                .log(logProcessorWithErrorHandler)
+                .build();
         logProcessorWithErrorHandler.onError(logData -> {
             final Throwable error = logData.getError();
             analyticsOnAnalytics.enqueue(TrackMessage.builder("segment_error")
+                    .userId("segmentError")
                     .properties(Map.of(
                             "message", logData.getMessage(),
                             "error", error == null ? "" : error.getMessage(),
-                            "args", ObjectUtils.defaultIfNull(logData.getArgs(), Collections.emptyList())
-                    ))
-            );
+                            "args", ObjectUtils.defaultIfNull(logData.getArgs(), Collections.emptyList()),
+                            "stackTrace", ExceptionUtils.getStackTrace(error))));
         });
 
         return analytics;
@@ -107,5 +111,4 @@ public class SegmentConfig {
         final String message;
         final Object[] args;
     }
-
 }

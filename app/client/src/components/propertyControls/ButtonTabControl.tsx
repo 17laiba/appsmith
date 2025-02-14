@@ -1,13 +1,20 @@
 import React from "react";
-import BaseControl, { ControlData, ControlProps } from "./BaseControl";
-import { ButtonTab, ButtonTabOption } from "design-system";
-import produce from "immer";
+import type { ControlData, ControlProps } from "./BaseControl";
+import BaseControl from "./BaseControl";
+import type { ToggleGroupOption } from "@appsmith/ads";
+import { ToggleButtonGroup } from "@appsmith/ads";
+import { create } from "mutative";
+import type { DSEventDetail } from "utils/AppsmithUtils";
 import {
-  DSEventDetail,
   DSEventTypes,
   DS_EVENT,
   emitInteractionAnalyticsEvent,
 } from "utils/AppsmithUtils";
+
+export interface ButtonTabControlProps extends ControlProps {
+  options: ToggleGroupOption[];
+  defaultValue: string;
+}
 
 class ButtonTabControl extends BaseControl<ButtonTabControlProps> {
   componentRef = React.createRef<HTMLDivElement>();
@@ -28,7 +35,7 @@ class ButtonTabControl extends BaseControl<ButtonTabControlProps> {
 
   handleAdsEvent = (e: CustomEvent<DSEventDetail>) => {
     if (
-      e.detail.component === "ButtonTab" &&
+      e.detail.component === "ButtonGroup" &&
       e.detail.event === DSEventTypes.KEYPRESS
     ) {
       emitInteractionAnalyticsEvent(this.componentRef.current, {
@@ -43,19 +50,22 @@ class ButtonTabControl extends BaseControl<ButtonTabControlProps> {
     const values: string[] = propertyValue
       ? propertyValue.split(",")
       : defaultValue
-      ? defaultValue.split(",")
-      : [];
+        ? defaultValue.split(",")
+        : [];
+
     if (values.includes(value)) {
       values.splice(values.indexOf(value), 1);
+
       this.updateProperty(
         this.props.propertyName,
         values.join(","),
         isUpdatedViaKeyboard,
       );
     } else {
-      const updatedValues: string[] = produce(values, (draft: string[]) => {
+      const updatedValues: string[] = create(values, (draft: string[]) => {
         draft.push(value);
       });
+
       this.updateProperty(
         this.props.propertyName,
         updatedValues.join(","),
@@ -65,21 +75,24 @@ class ButtonTabControl extends BaseControl<ButtonTabControlProps> {
   };
 
   render() {
-    const { options, propertyValue } = this.props;
     return (
-      <ButtonTab
-        options={options}
+      <ToggleButtonGroup
+        onClick={this.selectButton}
+        options={this.props.options}
         ref={this.componentRef}
-        selectButton={this.selectButton}
-        values={propertyValue ? propertyValue.split(",") : []}
+        values={
+          this.props.propertyValue ? this.props.propertyValue.split(",") : []
+        }
       />
     );
   }
 
   static getControlType() {
-    return "BUTTON_TABS";
+    return "BUTTON_GROUP";
   }
 
+  // TODO: Fix this the next time the file is edited
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static canDisplayValueInUI(config: ControlData, value: any): boolean {
     const allowedValues = new Set(
       (config as ButtonTabControlProps)?.options?.map(
@@ -95,11 +108,6 @@ class ButtonTabControl extends BaseControl<ButtonTabControlProps> {
 
     return true;
   }
-}
-
-export interface ButtonTabControlProps extends ControlProps {
-  options: ButtonTabOption[];
-  defaultValue: string;
 }
 
 export default ButtonTabControl;

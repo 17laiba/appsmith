@@ -2,15 +2,12 @@ import React from "react";
 import CurrencyTypeDropdown, {
   CurrencyDropdownOptions,
 } from "./CurrencyCodeDropdown";
-import BaseInputComponent, {
-  BaseInputComponentProps,
-} from "widgets/BaseInputWidget/component";
+import type { BaseInputComponentProps } from "widgets/BaseInputWidget/component";
+import BaseInputComponent from "widgets/BaseInputWidget/component";
 import { RenderModes } from "constants/WidgetConstants";
 import { InputTypes } from "widgets/BaseInputWidget/constants";
 
-class CurrencyInputComponent extends React.Component<
-  CurrencyInputComponentProps
-> {
+class CurrencyInputComponent extends React.Component<CurrencyInputComponentProps> {
   onKeyDown = (
     e:
       | React.KeyboardEvent<HTMLTextAreaElement>
@@ -43,6 +40,7 @@ class CurrencyInputComponent extends React.Component<
         autoFocus={this.props.autoFocus}
         borderRadius={this.props.borderRadius}
         boxShadow={this.props.boxShadow}
+        buttonPosition={this.props.buttonPosition}
         compactMode={this.props.compactMode}
         defaultValue={this.props.defaultValue}
         disableNewLineOnPressEnterKey={this.props.disableNewLineOnPressEnterKey}
@@ -54,6 +52,7 @@ class CurrencyInputComponent extends React.Component<
         inputHTMLType="NUMBER"
         inputType={InputTypes.CURRENCY}
         intent={this.props.intent}
+        isDynamicHeightEnabled={this.props.isDynamicHeightEnabled}
         isInvalid={this.props.isInvalid}
         isLoading={this.props.isLoading}
         label={this.props.label}

@@ -1,20 +1,22 @@
 import { ValidationTypes } from "constants/WidgetValidation";
-import { get } from "lodash";
-import { ColumnTypes, TableWidgetProps } from "widgets/TableWidgetV2/constants";
-import { getBasePropertyPath, hideByColumnType } from "../../propertyUtils";
+import type { TableWidgetProps } from "widgets/TableWidgetV2/constants";
+import { ColumnTypes } from "widgets/TableWidgetV2/constants";
+import { hideByColumnType, showByColumnType } from "../../propertyUtils";
 
 export default {
-  sectionName: (props: TableWidgetProps, propertyPath: string) => {
-    const columnType = get(props, `${propertyPath}.columnType`);
-    return columnType === ColumnTypes.CHECKBOX ||
-      columnType === ColumnTypes.SWITCH
-      ? "Alignment"
-      : "Text Formatting";
+  sectionName: "Text formatting",
+  hidden: (props: TableWidgetProps, propertyPath: string) => {
+    return showByColumnType(
+      props,
+      propertyPath,
+      [ColumnTypes.CHECKBOX, ColumnTypes.SWITCH],
+      true,
+    );
   },
   children: [
     {
       propertyName: "textSize",
-      label: "Text Size",
+      label: "Text size",
       helpText: "Controls the size of text in the column",
       controlType: "DROP_DOWN",
       isJSConvertible: true,
@@ -45,7 +47,7 @@ export default {
       isBindProperty: true,
       isTriggerProperty: false,
       validation: {
-        type: ValidationTypes.TABLE_PROPERTY,
+        type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
         params: {
           type: ValidationTypes.TEXT,
         },
@@ -55,6 +57,7 @@ export default {
           ColumnTypes.TEXT,
           ColumnTypes.DATE,
           ColumnTypes.NUMBER,
+          ColumnTypes.CURRENCY,
           ColumnTypes.URL,
         ]);
       },
@@ -63,18 +66,18 @@ export default {
       propertyName: "fontStyle",
       label: "Emphasis",
       helpText: "Controls the style of the text in the column",
-      controlType: "BUTTON_TABS",
+      controlType: "BUTTON_GROUP",
       options: [
         {
-          icon: "BOLD_FONT",
+          icon: "text-bold",
           value: "BOLD",
         },
         {
-          icon: "ITALICS_FONT",
+          icon: "text-italic",
           value: "ITALIC",
         },
         {
-          icon: "UNDERLINE",
+          icon: "text-underline",
           value: "UNDERLINE",
         },
       ],
@@ -84,7 +87,7 @@ export default {
       isBindProperty: true,
       isTriggerProperty: false,
       validation: {
-        type: ValidationTypes.TABLE_PROPERTY,
+        type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
         params: {
           type: ValidationTypes.TEXT,
         },
@@ -94,34 +97,28 @@ export default {
           ColumnTypes.TEXT,
           ColumnTypes.DATE,
           ColumnTypes.NUMBER,
+          ColumnTypes.CURRENCY,
           ColumnTypes.URL,
         ]);
       },
     },
     {
       propertyName: "horizontalAlignment",
-      label: (props: TableWidgetProps, propertyPath: string) => {
-        const basePropertyPath = getBasePropertyPath(propertyPath);
-        const columnType = get(props, `${basePropertyPath}.columnType`);
-        return columnType === ColumnTypes.CHECKBOX ||
-          columnType === ColumnTypes.SWITCH
-          ? "Horizontal Alignment"
-          : "Text Align";
-      },
+      label: "Text align",
       helpText: "Sets the horizontal alignment of the content in the column",
       controlType: "ICON_TABS",
       fullWidth: true,
       options: [
         {
-          icon: "LEFT_ALIGN",
+          startIcon: "align-left",
           value: "LEFT",
         },
         {
-          icon: "CENTER_ALIGN",
+          startIcon: "align-center",
           value: "CENTER",
         },
         {
-          icon: "RIGHT_ALIGN",
+          startIcon: "align-right",
           value: "RIGHT",
         },
       ],
@@ -131,7 +128,7 @@ export default {
       dependencies: ["primaryColumns", "columnOrder"],
       isBindProperty: true,
       validation: {
-        type: ValidationTypes.TABLE_PROPERTY,
+        type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
         params: {
           type: ValidationTypes.TEXT,
           params: {
@@ -145,6 +142,7 @@ export default {
           ColumnTypes.TEXT,
           ColumnTypes.DATE,
           ColumnTypes.NUMBER,
+          ColumnTypes.CURRENCY,
           ColumnTypes.URL,
           ColumnTypes.CHECKBOX,
           ColumnTypes.SWITCH,
@@ -153,21 +151,21 @@ export default {
     },
     {
       propertyName: "verticalAlignment",
-      label: "Vertical Alignment",
+      label: "Vertical alignment",
       helpText: "Sets the vertical alignment of the content in the column",
       controlType: "ICON_TABS",
       fullWidth: true,
       options: [
         {
-          icon: "VERTICAL_TOP",
+          startIcon: "vertical-align-top",
           value: "TOP",
         },
         {
-          icon: "VERTICAL_CENTER",
+          startIcon: "vertical-align-middle",
           value: "CENTER",
         },
         {
-          icon: "VERTICAL_BOTTOM",
+          startIcon: "vertical-align-bottom",
           value: "BOTTOM",
         },
       ],
@@ -177,7 +175,7 @@ export default {
       dependencies: ["primaryColumns", "columnOrder"],
       isBindProperty: true,
       validation: {
-        type: ValidationTypes.TABLE_PROPERTY,
+        type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
         params: {
           type: ValidationTypes.TEXT,
           params: {
@@ -191,6 +189,7 @@ export default {
           ColumnTypes.TEXT,
           ColumnTypes.DATE,
           ColumnTypes.NUMBER,
+          ColumnTypes.CURRENCY,
           ColumnTypes.URL,
           ColumnTypes.CHECKBOX,
           ColumnTypes.SWITCH,

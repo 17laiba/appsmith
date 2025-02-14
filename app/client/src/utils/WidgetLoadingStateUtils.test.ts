@@ -1,18 +1,18 @@
-import { PluginType } from "entities/Action";
-import {
-  DataTreeAction,
-  DataTreeJSAction,
-  DataTreeWidget,
-  ENTITY_TYPE,
-} from "entities/DataTree/dataTreeFactory";
+import { PluginType } from "entities/Plugin";
+import type {
+  WidgetEntity,
+  ActionEntity,
+  JSActionEntity,
+} from "ee/entities/DataTree/types";
+import { ENTITY_TYPE } from "ee/entities/DataTree/types";
 import {
   findLoadingEntities,
   getEntityDependantPaths,
   groupAndFilterDependantsMap,
 } from "utils/WidgetLoadingStateUtils";
-import WidgetFactory from "./WidgetFactory";
+import WidgetFactory from "../WidgetProvider/factory";
 
-const JS_object_tree: DataTreeJSAction = {
+const JS_object_tree: JSActionEntity = {
   pluginType: PluginType.JS,
   name: "",
   ENTITY_TYPE: ENTITY_TYPE.JSACTION,
@@ -23,19 +23,12 @@ const JS_object_tree: DataTreeJSAction = {
   reactivePaths: {},
   variables: [],
   dependencyMap: {},
+  actionId: "",
 };
 
 // @ts-expect-error: meta property not provided
-const Select_tree: DataTreeWidget = {
+const Select_tree: WidgetEntity = {
   ENTITY_TYPE: ENTITY_TYPE.WIDGET,
-  bindingPaths: {},
-  reactivePaths: {},
-  triggerPaths: {},
-  validationPaths: {},
-  logBlackList: {},
-  propertyOverrideDependency: {},
-  overridingPropertyPaths: {},
-  privateWidgets: {},
   widgetId: "",
   type: "",
   widgetName: "",
@@ -51,21 +44,13 @@ const Select_tree: DataTreeWidget = {
   animateLoading: true,
 };
 
-const Query_tree: DataTreeAction = {
+const Query_tree: ActionEntity = {
   data: {},
   actionId: "",
   config: {},
-  pluginType: PluginType.DB,
-  pluginId: "",
-  name: "",
   run: {},
   clear: {},
-  dynamicBindingPathList: [],
-  bindingPaths: {},
-  reactivePaths: {},
   ENTITY_TYPE: ENTITY_TYPE.ACTION,
-  dependencyMap: {},
-  logBlackList: {},
   datasourceUrl: "",
   responseMeta: {
     isExecutionSuccess: true,
@@ -73,37 +58,22 @@ const Query_tree: DataTreeAction = {
   isLoading: false,
 };
 
-const Api_tree: DataTreeAction = {
+const Api_tree: ActionEntity = {
   data: {},
   actionId: "",
   config: {},
-  pluginType: PluginType.API,
-  pluginId: "",
-  name: "",
   run: {},
   clear: {},
-  dynamicBindingPathList: [],
-  bindingPaths: {},
   ENTITY_TYPE: ENTITY_TYPE.ACTION,
-  dependencyMap: {},
-  logBlackList: {},
   datasourceUrl: "",
   responseMeta: {
     isExecutionSuccess: true,
   },
   isLoading: false,
-  reactivePaths: {},
 };
 
-const Table_tree: DataTreeWidget = {
+const Table_tree: WidgetEntity = {
   ENTITY_TYPE: ENTITY_TYPE.WIDGET,
-  bindingPaths: {},
-  triggerPaths: {},
-  validationPaths: {},
-  logBlackList: {},
-  propertyOverrideDependency: {},
-  overridingPropertyPaths: {},
-  privateWidgets: {},
   widgetId: "",
   type: "TABLE_WIDGET",
   widgetName: "",
@@ -117,7 +87,6 @@ const Table_tree: DataTreeWidget = {
   bottomRow: 0,
   isLoading: false,
   animateLoading: true,
-  reactivePaths: {},
   meta: {},
 };
 
@@ -174,6 +143,7 @@ describe("Widget loading state utils", () => {
     beforeAll(() => {
       // mock WidgetFactory.getLoadingProperties
       const loadingPropertiesMap = new Map<string, RegExp[]>();
+
       loadingPropertiesMap.set("TABLE_WIDGET", [/.tableData$/]);
 
       jest
@@ -194,6 +164,7 @@ describe("Widget loading state utils", () => {
         baseDataTree,
         baseInverseMap,
       );
+
       expect(loadingEntites).toStrictEqual(new Set(["Select1"]));
     });
 
@@ -206,6 +177,7 @@ describe("Widget loading state utils", () => {
         baseDataTree,
         baseInverseMap,
       );
+
       expect(loadingEntites).toStrictEqual(new Set(["Select1", "Select2"]));
     });
 
@@ -216,6 +188,7 @@ describe("Widget loading state utils", () => {
         baseDataTree,
         baseInverseMap,
       );
+
       expect(loadingEntites).toStrictEqual(new Set([]));
     });
 
@@ -236,6 +209,7 @@ describe("Widget loading state utils", () => {
           "Select1",
         ],
       });
+
       expect(loadingEntites).toStrictEqual(new Set(["Select1"]));
     });
 
@@ -255,6 +229,7 @@ describe("Widget loading state utils", () => {
           "Select1",
         ],
       });
+
       expect(loadingEntites).toStrictEqual(new Set(["Select1"]));
     });
 
@@ -282,6 +257,7 @@ describe("Widget loading state utils", () => {
           ],
         },
       );
+
       expect(loadingEntites).toStrictEqual(new Set(["Select1"]));
     });
 
@@ -316,6 +292,7 @@ describe("Widget loading state utils", () => {
           "Select2",
         ],
       });
+
       expect(loadingEntites).toStrictEqual(new Set(["Select2"]));
     });
 
@@ -323,6 +300,7 @@ describe("Widget loading state utils", () => {
       const loadingEntites = findLoadingEntities(["Api1"], baseDataTree, {
         "Api1.data": ["Table1.tableData"],
       });
+
       expect(loadingEntites).toStrictEqual(new Set(["Table1"]));
     });
 
@@ -330,6 +308,7 @@ describe("Widget loading state utils", () => {
       const loadingEntites = findLoadingEntities(["Api1"], baseDataTree, {
         "Api1.run": ["Table1.primaryColumns.action.onClick"],
       });
+
       expect(loadingEntites).toStrictEqual(new Set());
     });
   });
@@ -365,6 +344,7 @@ describe("Widget loading state utils", () => {
         },
         baseDataTree,
       );
+
       expect(groupedDependantsMap).toStrictEqual({
         Query1: { "Query1.data": ["JS_file.func1"] },
         Query2: {
@@ -377,7 +357,7 @@ describe("Widget loading state utils", () => {
       });
     });
 
-    it("includes JS object's self dependencies", () => {
+    it("includes JS Object's self dependencies", () => {
       const groupedDependantsMap = groupAndFilterDependantsMap(
         {
           "JS_file.func1": ["Select1.options"], // dependant
@@ -385,6 +365,7 @@ describe("Widget loading state utils", () => {
         },
         baseDataTree,
       );
+
       expect(groupedDependantsMap).toStrictEqual({
         JS_file: {
           "JS_file.func1": ["Select1.options"],
@@ -393,7 +374,7 @@ describe("Widget loading state utils", () => {
       });
     });
 
-    it("includes JS object's nested self dependencies", () => {
+    it("includes JS Object's nested self dependencies", () => {
       const groupedDependantsMap = groupAndFilterDependantsMap(
         {
           "JS_file.func1": ["Select1.options"], // dependant
@@ -402,6 +383,7 @@ describe("Widget loading state utils", () => {
         },
         baseDataTree,
       );
+
       expect(groupedDependantsMap).toStrictEqual({
         JS_file: {
           "JS_file.func1": ["Select1.options"],
@@ -427,6 +409,7 @@ describe("Widget loading state utils", () => {
         },
         new Set<string>(),
       );
+
       expect(dependants).toStrictEqual(
         new Set(["JS_file.func1", "Select1.options"]),
       );
@@ -448,6 +431,7 @@ describe("Widget loading state utils", () => {
         },
         new Set<string>(),
       );
+
       expect(dependants).toStrictEqual(
         new Set([
           "JS_file.func1",
@@ -475,6 +459,7 @@ describe("Widget loading state utils", () => {
         },
         new Set<string>(),
       );
+
       expect(dependants).toStrictEqual(new Set(["Select2.options"]));
     });
 
@@ -493,6 +478,7 @@ describe("Widget loading state utils", () => {
         },
         new Set<string>(),
       );
+
       expect(dependants).toStrictEqual(
         new Set(["JS_file.internalFunc", "JS_file.func1", "Select1.options"]),
       );
@@ -514,6 +500,7 @@ describe("Widget loading state utils", () => {
         },
         new Set<string>(),
       );
+
       expect(dependants).toStrictEqual(
         new Set([
           "JS_file.internalFunc1",
@@ -548,6 +535,7 @@ describe("Widget loading state utils", () => {
         },
         new Set<string>(),
       );
+
       expect(dependants).toStrictEqual(
         new Set(["JS_file.func2", "Select2.options"]),
       );

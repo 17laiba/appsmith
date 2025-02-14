@@ -5,7 +5,7 @@ import {
   contentConfig,
   styleConfig,
 } from "widgets/ChartWidget/widget/propertyConfig";
-import { EvaluationSubstitutionType } from "entities/DataTree/dataTreeFactory";
+import { EvaluationSubstitutionType } from "ee/entities/DataTree/types";
 import { ValidationTypes } from "constants/WidgetValidation";
 
 describe("getAllPathsFromPropertyConfig", () => {
@@ -204,15 +204,15 @@ describe("getAllPathsFromPropertyConfig", () => {
       validationPaths: {
         tableData: { type: "OBJECT_ARRAY", params: { default: [] } },
         "primaryColumns.status.boxShadow": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: { type: ValidationTypes.TEXT },
         },
         "primaryColumns.status.borderRadius": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: { type: ValidationTypes.TEXT },
         },
         "primaryColumns.status.buttonVariant": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: {
             type: ValidationTypes.TEXT,
             params: {
@@ -222,62 +222,63 @@ describe("getAllPathsFromPropertyConfig", () => {
           },
         },
         "primaryColumns.status.buttonColor": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: {
             type: ValidationTypes.TEXT,
             params: { regex: /^(?![<|{{]).+/ },
           },
         },
         "primaryColumns.status.isDisabled": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: { type: "BOOLEAN" },
         },
         "primaryColumns.status.isCellVisible": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: { type: "BOOLEAN" },
         },
         "primaryColumns.createdAt.cellBackground": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: {
             type: ValidationTypes.TEXT,
             params: { regex: /^(?![<|{{]).+/ },
           },
         },
         "primaryColumns.createdAt.textColor": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: {
             type: ValidationTypes.TEXT,
             params: { regex: /^(?![<|{{]).+/ },
           },
         },
         "primaryColumns.createdAt.verticalAlignment": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: {
             type: ValidationTypes.TEXT,
             params: { allowedValues: ["TOP", "CENTER", "BOTTOM"] },
           },
         },
         "primaryColumns.createdAt.fontStyle": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: { type: ValidationTypes.TEXT },
         },
         "primaryColumns.createdAt.textSize": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: { type: ValidationTypes.TEXT },
         },
         "primaryColumns.createdAt.horizontalAlignment": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: {
             type: ValidationTypes.TEXT,
             params: { allowedValues: ["LEFT", "CENTER", "RIGHT"] },
           },
         },
         "primaryColumns.createdAt.outputFormat": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: {
             type: ValidationTypes.TEXT,
             params: {
               allowedValues: [
+                "YYYY-MM-DDTHH:mm:ss.SSSZ",
                 "Epoch",
                 "Milliseconds",
                 "YYYY-MM-DD",
@@ -303,11 +304,12 @@ describe("getAllPathsFromPropertyConfig", () => {
           },
         },
         "primaryColumns.createdAt.inputFormat": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: {
             type: ValidationTypes.TEXT,
             params: {
               allowedValues: [
+                "YYYY-MM-DDTHH:mm:ss.SSSZ",
                 "Epoch",
                 "Milliseconds",
                 "YYYY-MM-DD",
@@ -333,47 +335,47 @@ describe("getAllPathsFromPropertyConfig", () => {
           },
         },
         "primaryColumns.createdAt.isCellVisible": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: { type: "BOOLEAN" },
         },
         "primaryColumns.name.cellBackground": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: {
             type: ValidationTypes.TEXT,
             params: { regex: /^(?![<|{{]).+/ },
           },
         },
         "primaryColumns.name.textColor": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: {
             type: ValidationTypes.TEXT,
             params: { regex: /^(?![<|{{]).+/ },
           },
         },
         "primaryColumns.name.verticalAlignment": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: {
             type: ValidationTypes.TEXT,
             params: { allowedValues: ["TOP", "CENTER", "BOTTOM"] },
           },
         },
         "primaryColumns.name.fontStyle": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: { type: ValidationTypes.TEXT },
         },
         "primaryColumns.name.textSize": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: { type: ValidationTypes.TEXT },
         },
         "primaryColumns.name.horizontalAlignment": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: {
             type: ValidationTypes.TEXT,
             params: { allowedValues: ["LEFT", "CENTER", "RIGHT"] },
           },
         },
         "primaryColumns.name.isCellVisible": {
-          type: ValidationTypes.TABLE_PROPERTY,
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: { type: "BOOLEAN" },
         },
         primaryColumnId: { type: ValidationTypes.TEXT },
@@ -510,7 +512,8 @@ describe("getAllPathsFromPropertyConfig", () => {
       ],
       setAdaptiveYMin: "0",
     };
-    const config = [...contentConfig, ...styleConfig];
+
+    const config = [...contentConfig(), ...styleConfig];
 
     const bindingPaths = {
       chartType: EvaluationSubstitutionType.TEMPLATE,
@@ -535,6 +538,7 @@ describe("getAllPathsFromPropertyConfig", () => {
       validationPaths: {
         "chartData.random-id.data": {
           params: {
+            default: [],
             children: {
               params: {
                 required: true,
@@ -576,6 +580,7 @@ describe("getAllPathsFromPropertyConfig", () => {
               "PIE_CHART",
               "COLUMN_CHART",
               "AREA_CHART",
+              "CUSTOM_ECHART",
               "CUSTOM_FUSION_CHART",
             ],
           },

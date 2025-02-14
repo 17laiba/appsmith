@@ -1,10 +1,12 @@
 import ReactPlayer from "react-player";
-import React, { Ref } from "react";
+import type { Ref } from "react";
+import React from "react";
 import styled from "styled-components";
-import { createMessage, ENTER_VIDEO_URL } from "@appsmith/constants/messages";
+import { createMessage, ENTER_VIDEO_URL } from "ee/constants/messages";
 export interface VideoComponentProps {
   url?: string;
-  autoplay?: boolean;
+  autoPlay?: boolean;
+  playing?: boolean;
   controls?: boolean;
   onStart?: () => void;
   onPlay?: () => void;
@@ -34,6 +36,7 @@ const VideoWrapper = styled.div<{
   backgroundColor?: string;
 }>`
   height: 100%;
+  width: 100%;
 
   & video,
   & > div {
@@ -48,7 +51,7 @@ const Error = styled.span``;
 
 export default function VideoComponent(props: VideoComponentProps) {
   const {
-    autoplay,
+    autoPlay,
     controls,
     onEnded,
     onError,
@@ -59,8 +62,10 @@ export default function VideoComponent(props: VideoComponentProps) {
     onSeek,
     onStart,
     player,
+    playing,
     url,
   } = props;
+
   return url ? (
     <VideoWrapper
       backgroundColor={props.backgroundColor}
@@ -70,7 +75,7 @@ export default function VideoComponent(props: VideoComponentProps) {
       <ReactPlayer
         controls={controls || true}
         height="100%"
-        muted={autoplay}
+        muted={autoPlay}
         onEnded={onEnded}
         onError={onError}
         onPause={onPause}
@@ -80,7 +85,7 @@ export default function VideoComponent(props: VideoComponentProps) {
         onSeek={onSeek}
         onStart={onStart}
         pip={false}
-        playing={autoplay}
+        playing={playing}
         ref={player}
         url={url}
         width="100%"

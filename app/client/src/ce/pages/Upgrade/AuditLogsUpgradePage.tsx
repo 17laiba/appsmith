@@ -1,15 +1,12 @@
 import React from "react";
-import { Carousel, Header } from "./types";
+import type { Carousel, Header } from "./types";
 import UpgradePage from "./UpgradePage";
 import DebuggingImage from "assets/svg/upgrade/audit-logs/debugging.svg";
 import IncidentManagementImage from "assets/svg/upgrade/audit-logs/incident-management.svg";
 import SecurityAndComplianceImage from "assets/svg/upgrade/audit-logs/security-and-compliance.svg";
-import AnalyticsUtil from "../../../utils/AnalyticsUtil";
-import { getAppsmithConfigs } from "../../configs";
-import { createMessage } from "design-system/build/constants/messages";
 import {
-  AUDIT_LOGS,
   AUDIT_LOGS_UPGRADE_PAGE_SUB_HEADING,
+  createMessage,
   DEBUGGING,
   DEBUGGING_DETAIL1,
   EXCLUSIVE_TO_BUSINESS,
@@ -19,14 +16,20 @@ import {
   SECURITY_AND_COMPLIANCE,
   SECURITY_AND_COMPLIANCE_DETAIL1,
   SECURITY_AND_COMPLIANCE_DETAIL2,
-  UPGRADE,
-} from "../../constants/messages";
-
-const { intercomAppID } = getAppsmithConfigs();
+} from "ee/constants/messages";
+import useOnUpgrade from "utils/hooks/useOnUpgrade";
+import { RampFeature, RampSection } from "utils/ProductRamps/RampsControlList";
 
 export function AuditLogsUpgradePage() {
+  const { onUpgrade } = useOnUpgrade({
+    logEventName: "AUDIT_LOGS_UPGRADE_ADMIN_SETTINGS",
+    logEventData: { source: "AuditLogs" },
+    featureName: RampFeature.AuditLogs,
+    sectionName: RampSection.AdminSettings,
+  });
+
   const header: Header = {
-    heading: createMessage(INTRODUCING, createMessage(AUDIT_LOGS)),
+    heading: createMessage(INTRODUCING, "audit logs"),
     subHeadings: [createMessage(AUDIT_LOGS_UPGRADE_PAGE_SUB_HEADING)],
   };
   const carousel: Carousel = {
@@ -52,13 +55,17 @@ export function AuditLogsUpgradePage() {
     ],
     targets: [
       <img
-        alt="Security & Compliance"
+        alt={createMessage(SECURITY_AND_COMPLIANCE)}
         key="security-and-compliance"
         src={SecurityAndComplianceImage}
       />,
-      <img alt="Debugging" key="debugging" src={DebuggingImage} />,
       <img
-        alt="Incident management"
+        alt={createMessage(DEBUGGING)}
+        key="debugging"
+        src={DebuggingImage}
+      />,
+      <img
+        alt={createMessage(INCIDENT_MANAGEMENT)}
         key="incident-management"
         src={IncidentManagementImage}
       />,
@@ -68,15 +75,11 @@ export function AuditLogsUpgradePage() {
 
   const footer = {
     onClick: () => {
-      AnalyticsUtil.logEvent("ADMIN_SETTINGS_UPGRADE_HOOK", {
-        source: "AuditLogs",
-      });
-      if (intercomAppID && window.Intercom) {
-        window.Intercom("showNewMessage", createMessage(UPGRADE));
-      }
+      onUpgrade();
     },
     message: createMessage(EXCLUSIVE_TO_BUSINESS, ["audit logs"]),
   };
   const props = { header, carousel, footer };
+
   return <UpgradePage {...props} />;
 }

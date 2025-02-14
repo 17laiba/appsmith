@@ -1,52 +1,42 @@
-import * as styledComponents from "styled-components";
-import { ThemedStyledComponentsModule } from "styled-components";
-import { Colors, Color } from "./Colors";
+import { css } from "styled-components";
+import type { Color } from "./Colors";
+import { Colors } from "./Colors";
 import * as FontFamilies from "./Fonts";
 import tinycolor from "tinycolor2";
 import { Alignment, Classes } from "@blueprintjs/core";
-import { AlertIcons } from "icons/AlertIcons";
-import { IconProps } from "constants/IconConstants";
-import { JSXElementConstructor } from "react";
-import { typography, Typography, TypographyKeys } from "./typography";
+import type { Typography, TypographyKeys } from "./typography";
+import { typography } from "./typography";
 
-import { LabelPosition } from "components/constants";
-export type FontFamily = typeof FontFamilies[keyof typeof FontFamilies];
-
-const themedStyled = {
-  default: styledComponents.default,
-  css: styledComponents.css,
-  createGlobalStyle: styledComponents.createGlobalStyle,
-  keyframes: styledComponents.keyframes,
-  ThemeProvider: styledComponents.ThemeProvider,
-} as ThemedStyledComponentsModule<Theme>;
-
-const {
-  createGlobalStyle,
-  css,
-  default: styled,
-  keyframes,
-  ThemeProvider,
-} = themedStyled;
+import type { LabelPosition } from "components/constants";
+import { Icon } from "@appsmith/ads";
+import React from "react";
+export type FontFamily = (typeof FontFamilies)[keyof typeof FontFamilies];
 
 export const IntentColors: Record<string, Color> = {
-  primary: Colors.GREEN,
-  success: Colors.PURPLE,
-  secondary: Colors.BLACK_PEARL,
-  danger: Colors.ERROR_RED,
-  none: Colors.GEYSER_LIGHT,
-  warning: Colors.JAFFA,
-  successLight: Colors.GREEN,
+  primary: "var(--ads-v2-color-fg-success)",
+  success: "var(--ads-v2-color-fg-success)",
+  secondary: "var(--ads-v2-color-fg-information)",
+  danger: "var(--ads-v2-color-fg-error)",
+  none: "var(--ads-v2-color-fg-information)",
+  warning: "var(--ads-v2-color-fg-error)",
+  successLight: "var(--ads-v2-color-fg-success)",
 };
 
-export type Intent = typeof IntentColors[keyof typeof IntentColors];
+export type Intent = (typeof IntentColors)[keyof typeof IntentColors];
 
-export const IntentIcons: Record<Intent, JSXElementConstructor<IconProps>> = {
-  primary: AlertIcons.SUCCESS,
-  success: AlertIcons.SUCCESS,
-  secondary: AlertIcons.INFO,
-  danger: AlertIcons.ERROR,
-  none: AlertIcons.INFO,
-  warning: AlertIcons.WARNING,
+export const IntentIcons: Record<Intent, React.ReactNode> = {
+  primary: <Icon color="var(--ads-v2-color-fg-success)" name="close-circle" />,
+  success: <Icon color="var(--ads-v2-color-fg-success)" name="close-circle" />,
+  secondary: (
+    <Icon color="var(--ads-v2-color-fg-information)" name="information-fill" />
+  ),
+  danger: (
+    <Icon color="var(--ads-v2-color-fg-error)" name="close-circle-fill" />
+  ),
+  none: (
+    <Icon color="var(--ads-v2-color-fg-information)" name="information-fill" />
+  ),
+  warning: <Icon color="var(--ads-v2-color-fg-warning)" name="alert-fill" />,
 };
 
 export enum Skin {
@@ -62,6 +52,8 @@ export const truncateTextUsingEllipsis = css`
 `;
 
 export const getTypographyByKey = (
+  // TODO: Fix this the next time the file is edited
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   props: Record<string, any>,
   key: TypographyKeys,
 ) => `
@@ -105,10 +97,9 @@ export const BlueprintControlTransform = css`
         border: 1px solid var(--wds-color-border-disabled) !important;
       }
 
-      &:hover {
-        & input:not(:checked):not(:disabled) ~ .bp3-control-indicator {
-          border: 1px solid ${Colors.GREY_6} !important;
-        }
+      &:hover input:not(:checked):not(:disabled) ~ .bp3-control-indicator,
+      & input:not(:checked):not(:disabled):focus ~ .bp3-control-indicator {
+        border: 1px solid var(--wds-color-bg-disabled-strong) !important;
       }
     }
 
@@ -137,11 +128,10 @@ export const BlueprintControlTransform = css`
         }
       }
 
-      &:hover {
-        & input:not(:checked):not(:disabled) ~ .bp3-control-indicator {
-          background: var(--wds-color-bg-strong-hover);
-          border: 1px solid var(--wds-color-border-hover) !important;
-        }
+      &:hover input:not(:checked):not(:disabled) ~ .bp3-control-indicator,
+      input:not(:checked):not(:disabled):focus ~ .bp3-control-indicator {
+        background: var(--wds-color-bg-strong-hover);
+        border: 1px solid var(--wds-color-border-hover) !important;
       }
     }
 
@@ -322,16 +312,16 @@ export const BlueprintRadioSwitchGroupTransform = css<{
   width: 100%;
   height: 100%;
 
-  ${({ alignment, inline, optionCount }) => `
-    display: ${
-      inline ? "inline-flex" : alignment === Alignment.RIGHT ? "block" : "flex"
-    };
+  ${({ inline, optionCount }) => `
+  display: ${inline ? "inline-flex" : "flex"};
     flex-direction: ${inline ? "row" : "column"};
     align-items: ${inline ? "center" : "flex-start"};
     ${inline && "flex-wrap: wrap"};
     justify-content: ${
       optionCount > 1 ? `space-between` : inline ? `flex-start` : `center`
     };
+    gap: 10px;
+    flex-grow: 1;
   `}
 
   ${BlueprintControlTransform};
@@ -340,44 +330,21 @@ export const BlueprintRadioSwitchGroupTransform = css<{
       if (alignment === Alignment.RIGHT) {
         return inline ? "inline-block" : "block";
       }
+
       return "flex";
+    }};
+    width: ${({ alignment, inline }) => {
+      if (alignment === Alignment.RIGHT) {
+        return inline ? "auto" : "100%";
+      }
+
+      return "auto";
     }};
     align-items: center;
     border: 1px solid transparent;
     color: ${Colors.GREY_10};
     line-height: 16px;
-    min-height: ${({ alignment }) =>
-      alignment === Alignment.RIGHT ? 23 : 30}px;
-    margin-top: ${({ alignment }) => (alignment === Alignment.RIGHT ? 7 : 0)}px;
 
-    margin-bottom: ${({
-      alignment,
-      height,
-      inline,
-      labelPosition,
-      optionCount,
-    }) => {
-      if (
-        alignment === Alignment.RIGHT &&
-        !inline &&
-        optionCount > 1 &&
-        height
-      ) {
-        return Math.max(
-          (height -
-            (labelPosition === LabelPosition.Left ? 0 : 35) -
-            optionCount * 31) /
-            (optionCount - 1),
-          8,
-        );
-      } else {
-        return 0;
-      }
-    }}px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
     .bp3-control-indicator {
       margin-top: 0;
       border: 1px solid ${Colors.GREY_5};
@@ -402,30 +369,32 @@ const iconSizes = {
 
 type IconSizeType = typeof iconSizes;
 
-export type ThemeBorder = {
+export interface ThemeBorder {
   thickness: number;
   style: "dashed" | "solid";
   color: Color;
-};
+}
 
-type PropertyPaneTheme = {
+interface PropertyPaneTheme {
   width: number;
   height: number;
   dividerColor: Color;
   titleHeight: number;
   connectionsHeight: number;
-};
+}
 
 export type NestedObjectOrArray<T> =
   | Record<string, T | T[] | Record<string, T | T[]>>
   | T
   | T[];
-export type Theme = {
+export interface Theme {
   radii: Array<number>;
   fontSizes: Array<number>;
   drawerWidth: string;
   spaces: Array<number>;
   fontWeights: Array<number>;
+  // TODO: Fix this the next time the file is edited
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   colors: any;
   typography: Typography;
   lineHeights: Array<number>;
@@ -442,8 +411,11 @@ export type Theme = {
   headerHeight: string;
   smallHeaderHeight: string;
   bottomBarHeight: string;
+  pageTabsHeight: string;
   integrationsPageUnusableHeight: string;
   backBanner: string;
+  // TODO: Fix this the next time the file is edited
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   homePage: any;
   sidebarWidth: string;
   canvasBottomPadding: number;
@@ -545,7 +517,7 @@ export type Theme = {
     footerShadow: string;
     linkBg: string;
   };
-};
+}
 
 export const getColorWithOpacity = (color: Color, opacity: number) => {
   color = color.slice(1);
@@ -553,16 +525,19 @@ export const getColorWithOpacity = (color: Color, opacity: number) => {
   const r = (val >> 16) & 255;
   const g = (val >> 8) & 255;
   const b = val & 255;
+
   return `rgba(${r},${g},${b},${opacity})`;
 };
 
 export const getBorderCSSShorthand = (border?: ThemeBorder): string => {
   const values: string[] = [];
+
   if (border) {
     for (const [key, value] of Object.entries(border)) {
       values.push(key === "thickness" ? value + "px" : value.toString());
     }
   }
+
   return values.join(" ");
 };
 
@@ -579,33 +554,7 @@ export const hideScrollbar = css`
   }
 `;
 
-export const thinScrollbar = css`
-  ::-webkit-scrollbar {
-    width: 4px;
-  }
-
-  /* Track */
-  ::-webkit-scrollbar-track {
-    border-radius: 10px;
-  }
-
-  /* Handle */
-  ::-webkit-scrollbar-thumb {
-    background: transparent;
-    border-radius: 10px;
-  }
-  &:hover {
-    ::-webkit-scrollbar-thumb {
-      background: ${getColorWithOpacity(Colors.CHARCOAL, 0.5)};
-      border-radius: 10px;
-    }
-  }
-
-  /* Handle on hover */
-  ::-webkit-scrollbar-thumb:hover {
-    background: ${getColorWithOpacity(Colors.CHARCOAL, 0.5)};
-  }
-`;
+export const thinScrollbar = css``;
 // export const adsTheme: any = {
 //   space: [0, 3, 14, 7, 16, 11, 26, 10, 4, 26, 30, 36, 4, 6, 11],
 // };
@@ -654,7 +603,7 @@ export const appColors = [
   "#FFEBFB",
 ] as const;
 
-export type AppColorCode = typeof appColors[number];
+export type AppColorCode = (typeof appColors)[number];
 
 const darkShades = [
   "#1A191C",
@@ -697,17 +646,17 @@ const lightShades = [
   "#E7E7E7",
 ] as const;
 
-type ShadeColor = typeof darkShades[number] | typeof lightShades[number];
+type ShadeColor = (typeof darkShades)[number] | (typeof lightShades)[number];
 
-type buttonVariant = {
+interface buttonVariant {
   main: string;
   light: string;
   dark: string;
   darker: string;
   darkest: string;
-};
+}
 
-type ButtonVariantColor = {
+interface ButtonVariantColor {
   primary: {
     bgColor?: Color;
     borderColor?: Color;
@@ -726,9 +675,9 @@ type ButtonVariantColor = {
     hoverColor: Color;
     textColor?: Color;
   };
-};
+}
 
-type ColorType = {
+interface ColorType {
   overlayColor: string;
   button: {
     disabledText: ShadeColor;
@@ -1080,6 +1029,7 @@ type ColorType = {
   apiPane: {
     bg: ShadeColor;
     text: ShadeColor;
+    keyValueText?: ShadeColor;
     dividerBg: ShadeColor;
     iconHoverBg: ShadeColor;
     tabBg: ShadeColor;
@@ -1129,7 +1079,11 @@ type ColorType = {
       fullForm: string;
     };
   };
+  // TODO: Fix this the next time the file is edited
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   floatingBtn: any;
+  // TODO: Fix this the next time the file is edited
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   auth: any;
   formMessage: Record<string, Record<Intent, string>>;
   header: {
@@ -1314,12 +1268,14 @@ type ColorType = {
     };
     error: {
       time: string;
+      type: string;
       borderBottom: string;
       backgroundColor: string;
       iconColor: string;
       hoverIconColor: string;
     };
     jsonIcon: string;
+    collapseIcon: string;
     message: string;
   };
   helpModal: {
@@ -1344,9 +1300,6 @@ type ColorType = {
     highlightTextColor: string;
     textColor: string;
   };
-  pagesEditor: {
-    iconColor: string;
-  };
   numberedStep: {
     line: string;
   };
@@ -1363,7 +1316,7 @@ type ColorType = {
   settings: {
     link: string;
   };
-};
+}
 
 const editorBottomBar = {
   background: Colors.WHITE,
@@ -1377,6 +1330,7 @@ const gitSyncModal = {
   closeIcon: Colors.SCORPION,
   closeIconHover: Colors.GREY_900,
 };
+
 type GitSyncModalColors = typeof gitSyncModal;
 
 const tabItemBackgroundFill = {
@@ -1407,10 +1361,6 @@ const mentionSuggestion = {
   nameText: "#090707",
   usernameText: "#716E6E",
   hover: "#EBEBEB",
-};
-
-const pagesEditor = {
-  iconColor: "#A2A6A8",
 };
 
 const toggleMode = {
@@ -1989,6 +1939,7 @@ export const dark: ColorType = {
     bg: darkShades[0],
     tabBg: lightShades[10],
     text: darkShades[6],
+    keyValueText: lightShades[8],
     dividerBg: darkShades[4],
     iconHoverBg: darkShades[1],
     requestTree: {
@@ -2103,6 +2054,7 @@ export const dark: ColorType = {
     entity: "rgba(212, 212, 212, 0.5)",
     entityLink: "#D4D4D4",
     jsonIcon: "#9F9F9F",
+    collapseIcon: lightShades[20],
     message: "#D4D4D4",
     evalDebugButton: {
       hover: "#fafafaaa",
@@ -2124,18 +2076,19 @@ export const dark: ColorType = {
       shortcut: "#D4D4D4",
     },
     info: {
-      time: "#D4D4D4",
+      time: Colors.GRAY_500,
       borderBottom: "black",
     },
     warning: {
-      time: "#D4D4D4",
+      time: Colors.GRAY_500,
       iconColor: "#f3cc3e",
       hoverIconColor: "#e0b30e",
       borderBottom: "black",
       backgroundColor: "#29251A",
     },
     error: {
-      time: "#D4D4D4",
+      time: Colors.GRAY_500,
+      type: "#393939",
       iconColor: "#f56060",
       hoverIconColor: "#F22B2B",
       borderBottom: "black",
@@ -2148,7 +2101,6 @@ export const dark: ColorType = {
     actionActiveBg: "#e1e1e1",
   },
   actionSidePane,
-  pagesEditor,
   link: "#f86a2b",
   welcomePage: {
     text: lightShades[5],
@@ -2176,9 +2128,9 @@ export const light: ColorType = {
   globalSearch: {
     ...globalSearch,
     helpBarBackground: "#F0F0F0",
-    helpBarText: "#A9A7A7",
+    helpBarText: Colors.GRAY_400,
     helpButtonBackground: "#F0F0F0",
-    helpIcon: "#939090",
+    helpIcon: Colors.GRAY_700,
   },
   navigationMenu: {
     contentActive: "#090707",
@@ -2193,7 +2145,7 @@ export const light: ColorType = {
   header: {
     separator: "#E0DEDE",
     appName: lightShades[8],
-    background: lightShades[0],
+    background: lightShades[11],
     deployToolTipText: lightShades[8],
     deployToolTipBackground: "#FFF",
     shareBtnHighlight: "#F86A2B",
@@ -2622,6 +2574,7 @@ export const light: ColorType = {
     bg: lightShades[11],
     tabBg: lightShades[11],
     text: lightShades[16],
+    keyValueText: lightShades[8],
     dividerBg: lightShades[3],
     iconHoverBg: lightShades[1],
     requestTree: {
@@ -2738,6 +2691,7 @@ export const light: ColorType = {
     entityLink: "#575757",
     jsonIcon: "#a9a7a7",
     message: "#4b4848",
+    collapseIcon: lightShades[20],
     evalDebugButton: {
       hover: "#fafafaaa",
       active: "#fafafaff",
@@ -2758,18 +2712,19 @@ export const light: ColorType = {
       shortcut: "black",
     },
     info: {
-      time: "#939393",
+      time: Colors.GRAY_500,
       borderBottom: "#E8E8E8",
     },
     warning: {
-      time: "#575757",
+      time: Colors.GRAY_500,
       iconColor: "#f3cc3e",
       hoverIconColor: "#e0b30e",
       borderBottom: "#E8E8E8",
       backgroundColor: "#FFF8E2",
     },
     error: {
-      time: "#575757",
+      time: Colors.GRAY_500,
+      type: "#393939",
       iconColor: "#f56060",
       hoverIconColor: "#F22B2B",
       borderBottom: "#E8E8E8",
@@ -2782,7 +2737,6 @@ export const light: ColorType = {
     actionActiveBg: "#e1e1e1",
   },
   actionSidePane,
-  pagesEditor,
   link: "#f86a2b",
   welcomePage: {
     text: lightShades[5],
@@ -2914,11 +2868,11 @@ export const theme: Theme = {
       color: Colors.MYSTIC,
     },
   ],
-  sidebarWidth: "250px",
+  sidebarWidth: "256px",
   homePage: {
     header: 48,
     leftPane: {
-      width: 240,
+      width: 256,
       leftPadding: 16,
       rightMargin: 12,
     },
@@ -2932,8 +2886,9 @@ export const theme: Theme = {
     sidebar: 256,
   },
   headerHeight: "48px",
-  smallHeaderHeight: "32px",
-  bottomBarHeight: "34px",
+  smallHeaderHeight: "40px",
+  bottomBarHeight: "37px",
+  pageTabsHeight: "32px",
   integrationsPageUnusableHeight: "182px",
   backBanner: "30px",
   canvasBottomPadding: 200,
@@ -3048,7 +3003,7 @@ export const theme: Theme = {
     },
   },
   actionSidePane: {
-    width: 265,
+    width: 280,
   },
   onboarding: {
     statusBarHeight: 92,
@@ -3059,7 +3014,3 @@ export const theme: Theme = {
     linkBg: lightShades[2],
   },
 };
-
-export { css, createGlobalStyle, keyframes, ThemeProvider };
-
-export default styled;

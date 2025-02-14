@@ -1,16 +1,13 @@
 import { reduxBatch } from "@manaflair/redux-batch";
 import { createStore, applyMiddleware, compose } from "redux";
-import {
-  useSelector as useReduxSelector,
-  TypedUseSelectorHook,
-} from "react-redux";
-import appReducer, { AppState } from "@appsmith/reducers";
+import type { AppState } from "ee/reducers";
+import appReducer from "ee/reducers";
 import createSagaMiddleware from "redux-saga";
-import { rootSaga } from "@appsmith/sagas";
+import { rootSaga } from "ee/sagas";
 import { composeWithDevTools } from "redux-devtools-extension/logOnlyInProduction";
 import * as Sentry from "@sentry/react";
-import { ReduxActionTypes } from "@appsmith/constants/ReduxActionConstants";
-import routeParamsMiddleware from "RouteParamsMiddleware";
+import { ReduxActionTypes } from "ee/constants/ReduxActionConstants";
+import routeParamsMiddleware from "ee/RouteParamsMiddleware";
 
 const sagaMiddleware = createSagaMiddleware();
 const ignoredSentryActionTypes = [
@@ -24,6 +21,7 @@ const sentryReduxEnhancer = Sentry.createReduxEnhancer({
       // Return null to not log the action to Sentry
       action.payload = null;
     }
+
     return action;
   },
 });
@@ -49,6 +47,6 @@ export const testStore = (initialState: Partial<AppState>) =>
     ),
   );
 
-sagaMiddleware.run(rootSaga);
-
-export const useSelector: TypedUseSelectorHook<AppState> = useReduxSelector;
+// We don't want to run the saga middleware in tests, so exporting it from here
+// And running it only when the app runs
+export const runSagaMiddleware = () => sagaMiddleware.run(rootSaga);

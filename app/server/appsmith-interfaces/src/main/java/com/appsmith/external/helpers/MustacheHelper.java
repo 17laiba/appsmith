@@ -3,6 +3,7 @@ package com.appsmith.external.helpers;
 import com.appsmith.external.models.ActionConfiguration;
 import com.appsmith.external.models.EntityDependencyNode;
 import com.appsmith.external.models.EntityReferenceType;
+import com.appsmith.external.models.MustacheBindingToken;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringEscapeUtils;
 import org.springframework.beans.BeanWrapper;
@@ -23,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -41,12 +41,13 @@ public class MustacheHelper {
      * {{JSON.stringify(fetchUsers)}}
      * This pattern should return ["JSON.stringify", "fetchUsers"]
      */
-    private final static Pattern pattern = Pattern.compile("[a-zA-Z_][a-zA-Z0-9._]*");
+    private static final Pattern pattern = Pattern.compile("[a-zA-Z_][a-zA-Z0-9._$]*");
     /**
      * Appsmith smart replacement : The regex pattern below looks for '?' or "?". This pattern is later replaced with ?
      * to fit the requirements of prepared statements.
      */
     private static final String regexQuotesTrimming = "([\"']\\?[\"'])";
+
     private static final Pattern quoteQuestionPattern = Pattern.compile(regexQuotesTrimming);
     // The final replacement string of ? for replacing '?' or "?"
     private static final String postQuoteTrimmingQuestionMark = "\\?";
@@ -57,19 +58,18 @@ public class MustacheHelper {
      * of JSON smart replacement aka trim the quotes present.
      */
     private static final String regexPlaceholderTrimming = "([\"']" + APPSMITH_SUBSTITUTION_PLACEHOLDER + "[\"'])";
+
     private static final Pattern placeholderTrimmingPattern = Pattern.compile(regexPlaceholderTrimming);
 
     private static final String laxMustacheBindingRegex = "\\{\\{([\\s\\S]*?)}}";
     private static final Pattern laxMustacheBindingPattern = Pattern.compile(laxMustacheBindingRegex);
 
-
     private static final Pattern nestedPathTokenSplitter = Pattern.compile("\\[.*\\]\\.?|\\.");
 
     // Possible types of entity references that we want to be filtering
     // from the global identifiers found in a dynamic binding
-    public static final int ACTION_ENTITY_REFERENCES = 0b01;
+    public static final int EXECUTABLE_ENTITY_REFERENCES = 0b01;
     public static final int WIDGET_ENTITY_REFERENCES = 0b10;
-
 
     /**
      * Tokenize a Mustache template string into a list of plain text and Mustache interpolations.
@@ -79,12 +79,12 @@ public class MustacheHelper {
      * should give the original template back. The tokens are split such that alternative strings in the list are plain
      * text and the others are mustache interpolations.
      */
-    public static List<String> tokenize(String template) {
+    public static List<MustacheBindingToken> tokenize(String template) {
         if (!StringUtils.hasLength(template)) {
             return Collections.emptyList();
         }
 
-        List<String> tokens = new ArrayList<>();
+        List<MustacheBindingToken> tokens = new ArrayList<>();
 
         int length = template.length();
 
@@ -100,6 +100,7 @@ public class MustacheHelper {
         int braceDepth = 0;
 
         StringBuilder currentToken = new StringBuilder().append(template.charAt(0));
+        int currentTokenStartIndex = 0;
 
         // The parser is implemented as a pointer (marked by `i`) that loops over each character in the template string.
         // There's majorly two states for the parser, plain-text-mode and mustache-mode, with the current state
@@ -118,8 +119,9 @@ public class MustacheHelper {
                     isInsideMustache = true;
                     // Remove the `{` added to the builder.
                     currentToken.deleteCharAt(currentToken.length() - 1);
-                    clearAndPushToken(currentToken, tokens);
+                    clearAndPushToken(currentToken, currentTokenStartIndex, tokens, false);
                     currentToken.append(prevChar);
+                    currentTokenStartIndex = i - 1;
                     braceDepth = 2;
                 }
 
@@ -157,21 +159,18 @@ public class MustacheHelper {
                     --braceDepth;
                     currentToken.append(currentChar);
                     if (prevChar == '}' && braceDepth <= 0) {
-                        clearAndPushToken(currentToken, tokens);
+                        clearAndPushToken(currentToken, currentTokenStartIndex, tokens, true);
                         isInsideMustache = false;
                     }
 
                 } else {
                     currentToken.append(currentChar);
-
                 }
-
             }
-
         }
 
         if (currentToken.length() > 0) {
-            tokens.add(currentToken.toString());
+            tokens.add(new MustacheBindingToken(currentToken.toString(), currentTokenStartIndex, false));
         }
 
         return tokens;
@@ -185,15 +184,19 @@ public class MustacheHelper {
      * @return A Set of strings that serve as replacement keys, with the surrounding double braces stripped and then
      * trimmed.
      */
-    public static Set<String> extractMustacheKeys(String template) {
-        Set<String> keys = new HashSet<>();
+    public static Set<MustacheBindingToken> extractMustacheKeys(String template) {
+        Set<MustacheBindingToken> keys = new HashSet<>();
 
-        for (String token : tokenize(template)) {
-            if (token.startsWith("{{") && token.endsWith("}}")) {
+        for (MustacheBindingToken token : tokenize(template)) {
+            if (token.getValue().startsWith("{{") && token.getValue().endsWith("}}")) {
                 // Allowing empty tokens to be added, to be compatible with the previous `extractMustacheKeys` method.
                 // Calling `.trim()` before adding because Mustache compiler strips keys in the template before looking
-                // up a value. Addresses https://www.notion.so/appsmith/Bindings-with-a-space-at-the-start-fail-to-execute-properly-in-the-API-pane-2eb65d5c6064466b9ef059fa01ef3261
-                keys.add(token.substring(2, token.length() - 2).trim());
+                // up a value. Addresses
+                // https://www.notion.so/appsmith/Bindings-with-a-space-at-the-start-fail-to-execute-properly-in-the-API-pane-2eb65d5c6064466b9ef059fa01ef3261
+                keys.add(new MustacheBindingToken(
+                        token.getValue().substring(2, token.getValue().length() - 2),
+                        (token.getStartIndex() + 2),
+                        false));
             }
         }
 
@@ -201,23 +204,29 @@ public class MustacheHelper {
     }
 
     // For prepared statements we should extract the bindings in order in a list and include duplicate bindings as well.
-    public static List<String> extractMustacheKeysInOrder(String template) {
-        List<String> keys = new ArrayList<>();
+    public static List<MustacheBindingToken> extractMustacheKeysInOrder(String template) {
+        List<MustacheBindingToken> keys = new ArrayList<>();
 
-        for (String token : tokenize(template)) {
-            if (token.startsWith("{{") && token.endsWith("}}")) {
+        for (MustacheBindingToken token : tokenize(template)) {
+            if (token.getValue().startsWith("{{") && token.getValue().endsWith("}}")) {
                 // Allowing empty tokens to be added, to be compatible with the previous `extractMustacheKeys` method.
                 // Calling `.trim()` before adding because Mustache compiler strips keys in the template before looking
-                // up a value. Addresses https://www.notion.so/appsmith/Bindings-with-a-space-at-the-start-fail-to-execute-properly-in-the-API-pane-2eb65d5c6064466b9ef059fa01ef3261
-                keys.add(token.substring(2, token.length() - 2).trim());
+                // up a value. Addresses
+                // https://www.notion.so/appsmith/Bindings-with-a-space-at-the-start-fail-to-execute-properly-in-the-API-pane-2eb65d5c6064466b9ef059fa01ef3261
+                keys.add(new MustacheBindingToken(
+                        token.getValue()
+                                .substring(2, token.getValue().length() - 2)
+                                .trim(),
+                        (token.getStartIndex() + 2),
+                        false));
             }
         }
 
         return keys;
     }
 
-    public static Set<String> extractMustacheKeysFromFields(Object object) {
-        final Set<String> keys = new HashSet<>();
+    public static Set<MustacheBindingToken> extractMustacheKeysFromFields(Object object) {
+        final Set<MustacheBindingToken> keys = new HashSet<>();
 
         // Linearized recursive search. Instead of calling this function recursively for nested values, we add them to
         // the end of the queue and process them in a linear fashion. This strategy doesn't suffer from a stack overflow
@@ -245,16 +254,19 @@ public class MustacheHelper {
 
             } else if (obj instanceof String) {
                 keys.addAll(extractMustacheKeys((String) obj));
-
             }
         }
 
         return keys;
     }
 
-    private static void clearAndPushToken(StringBuilder tokenBuilder, List<String> tokenList) {
+    private static void clearAndPushToken(
+            StringBuilder tokenBuilder,
+            int tokenStartIndex,
+            List<MustacheBindingToken> tokenList,
+            boolean includesHandleBars) {
         if (tokenBuilder.length() > 0) {
-            tokenList.add(tokenBuilder.toString());
+            tokenList.add(new MustacheBindingToken(tokenBuilder.toString(), tokenStartIndex, includesHandleBars));
             tokenBuilder.setLength(0);
         }
     }
@@ -300,9 +312,10 @@ public class MustacheHelper {
         } else if (object instanceof Map) {
             Map renderedMap = new HashMap<>();
             for (Object entry : ((Map) object).entrySet()) {
-                renderedMap.put(((Map.Entry) entry).getKey(), // key
+                renderedMap.put(
+                        ((Map.Entry) entry).getKey(), // key
                         renderFieldValues(((Map.Entry) entry).getValue(), context) // value
-                );
+                        );
             }
 
             return (T) renderedMap;
@@ -322,15 +335,31 @@ public class MustacheHelper {
     public static String render(String template, Map<String, String> keyValueMap) {
         final StringBuilder rendered = new StringBuilder();
 
-        for (String token : tokenize(template)) {
-            if (token.startsWith("{{") && token.endsWith("}}")) {
-                rendered.append(keyValueMap.get(token.substring(2, token.length() - 2).trim()));
+        for (MustacheBindingToken token : tokenize(template)) {
+            if (token.getValue().startsWith("{{") && token.getValue().endsWith("}}")) {
+                // If there is no entry found for the current token in keyValueMap that means the binding is part of the
+                // text
+                // and hence reflecting the value in the rendered string as is.
+                // Example: {{Input.text}} = "This whole string is the value of Input1.text. Even this {{one}}."
+                String bindingValue = keyValueMap.get(token.getValue()
+                        .substring(2, token.getValue().length() - 2)
+                        .trim());
+                if (bindingValue != null) {
+                    rendered.append(bindingValue);
+                } else {
+                    rendered.append(token.getValue());
+                }
             } else {
-                rendered.append(token);
+                rendered.append(token.getValue());
             }
         }
-
-        return StringEscapeUtils.unescapeHtml4(rendered.toString());
+        /**
+         * ReplaceAll is used to escape the double quotes symbol with \" so that
+         * JSON remains valid.
+         * &quot; and &#34; both are HTML reserved characters for double quotes (")
+         */
+        return StringEscapeUtils.unescapeHtml4(
+                rendered.toString().replaceAll("&quot;", "\\\\&quot;").replaceAll("&#34;", "\\\\&#34;"));
     }
 
     /**
@@ -341,13 +370,14 @@ public class MustacheHelper {
      * @param types
      * @return
      */
-    public static Mono<Map<String, Set<EntityDependencyNode>>> getPossibleEntityParentsMap(Flux<Tuple2<String, Set<String>>> bindingAndPossibleReferencesFlux, int types) {
+    public static Mono<Map<String, Set<EntityDependencyNode>>> getPossibleEntityParentsMap(
+            Flux<Tuple2<String, Set<String>>> bindingAndPossibleReferencesFlux, int types) {
 
         return bindingAndPossibleReferencesFlux.collect(HashMap::new, (map, tuple) -> {
             String bindingValue = tuple.getT1();
             HashSet<EntityDependencyNode> totalParents = new HashSet<>();
             tuple.getT2().forEach(reference -> {
-                if ((types & ACTION_ENTITY_REFERENCES) == ACTION_ENTITY_REFERENCES) {
+                if ((types & EXECUTABLE_ENTITY_REFERENCES) == EXECUTABLE_ENTITY_REFERENCES) {
                     totalParents.addAll(MustacheHelper.getPossibleActions(reference));
                 }
                 if ((types & WIDGET_ENTITY_REFERENCES) == WIDGET_ENTITY_REFERENCES) {
@@ -381,7 +411,8 @@ public class MustacheHelper {
         if (subStrings.length < 1) {
             return dependencyNodes;
         } else {
-            EntityDependencyNode entityDependencyNode = new EntityDependencyNode(EntityReferenceType.WIDGET, subStrings[0], reference, null, null, null);
+            EntityDependencyNode entityDependencyNode =
+                    new EntityDependencyNode(EntityReferenceType.WIDGET, subStrings[0], reference, null, null);
             dependencyNodes.add(entityDependencyNode);
         }
 
@@ -410,7 +441,6 @@ public class MustacheHelper {
         Set<EntityDependencyNode> dependencyNodes = new HashSet<>();
         String key = reference.trim();
 
-
         String[] subStrings = nestedPathTokenSplitter.split(key);
 
         if (subStrings.length < 1) {
@@ -420,19 +450,22 @@ public class MustacheHelper {
         if (subStrings.length == 2) {
             // This could qualify if it is a sync JS function call, even if it is called `JsObject1.data()`
             // For sync JS actions, the entire reference could be a function call
-            EntityDependencyNode entityDependencyNode = new EntityDependencyNode(EntityReferenceType.JSACTION, key, reference, false, true, null);
+            EntityDependencyNode entityDependencyNode =
+                    new EntityDependencyNode(EntityReferenceType.JSACTION, key, reference, false, null);
             dependencyNodes.add(entityDependencyNode);
             if ("data".equals(subStrings[1])) {
                 // This means it is a valid API/query reference
                 // For queries and APIs, the first word is the action name
-                EntityDependencyNode actionEntityDependencyNode = new EntityDependencyNode(EntityReferenceType.ACTION, subStrings[0], reference, false, false, null);
+                EntityDependencyNode actionEntityDependencyNode =
+                        new EntityDependencyNode(EntityReferenceType.ACTION, subStrings[0], reference, false, null);
                 dependencyNodes.add(actionEntityDependencyNode);
             }
         } else if (subStrings.length > 2) {
             if ("data".equals(subStrings[1])) {
                 // This means it is a valid API/query reference
                 // For queries and APIs, the first word is the action name
-                EntityDependencyNode actionEntityDependencyNode = new EntityDependencyNode(EntityReferenceType.ACTION, subStrings[0], reference, false, false, null);
+                EntityDependencyNode actionEntityDependencyNode =
+                        new EntityDependencyNode(EntityReferenceType.ACTION, subStrings[0], reference, false, null);
                 dependencyNodes.add(actionEntityDependencyNode);
             }
             if ("data".equals(subStrings[2])) {
@@ -440,7 +473,8 @@ public class MustacheHelper {
                 // the collection name and the individual action name
                 // We don't know if this is a run for sync or async JS action at this point,
                 // since both would be valid
-                EntityDependencyNode entityDependencyNode = new EntityDependencyNode(EntityReferenceType.JSACTION, subStrings[0] + "." + subStrings[1], reference, null, false, null);
+                EntityDependencyNode entityDependencyNode = new EntityDependencyNode(
+                        EntityReferenceType.JSACTION, subStrings[0] + "." + subStrings[1], reference, null, null);
                 dependencyNodes.add(entityDependencyNode);
             }
         }
@@ -459,7 +493,6 @@ public class MustacheHelper {
         Set<String> bindingNames = new HashSet<>();
         String key = mustacheKey.trim();
 
-
         // Extract all the words in the dynamic bindings
         Matcher matcher = pattern.matcher(key);
 
@@ -474,7 +507,6 @@ public class MustacheHelper {
     public static Set<String> getPossibleParents(String mustacheKey) {
         Set<String> bindingNames = new HashSet<>();
         String key = mustacheKey.trim();
-
 
         // Extract all the words in the dynamic bindings
         Matcher matcher = pattern.matcher(key);
@@ -491,35 +523,45 @@ public class MustacheHelper {
             bindingNames.add(subStrings[0]);
 
             if (subStrings.length >= 2) {
-                // For JS actions, the first two words are the action name since action name consists of the collection name
+                // For JS actions, the first two words are the action name since action name consists of the collection
+                // name
                 // and the individual action name
                 bindingNames.add(subStrings[0] + "." + subStrings[1]);
             }
-
         }
         return bindingNames;
     }
 
-    public static String replaceMustacheWithPlaceholder(String query, List<String> mustacheBindings) {
-        return replaceMustacheUsingPatterns(query, APPSMITH_SUBSTITUTION_PLACEHOLDER, mustacheBindings, placeholderTrimmingPattern, APPSMITH_SUBSTITUTION_PLACEHOLDER);
+    public static String replaceMustacheWithPlaceholder(String query, List<MustacheBindingToken> mustacheBindings) {
+        return replaceMustacheUsingPatterns(
+                query,
+                APPSMITH_SUBSTITUTION_PLACEHOLDER,
+                mustacheBindings,
+                placeholderTrimmingPattern,
+                APPSMITH_SUBSTITUTION_PLACEHOLDER);
     }
 
-    public static String replaceMustacheWithQuestionMark(String query, List<String> mustacheBindings) {
+    public static String replaceMustacheWithQuestionMark(String query, List<MustacheBindingToken> mustacheBindings) {
 
-        return replaceMustacheUsingPatterns(query, "?", mustacheBindings, quoteQuestionPattern, postQuoteTrimmingQuestionMark);
+        return replaceMustacheUsingPatterns(
+                query, "?", mustacheBindings, quoteQuestionPattern, postQuoteTrimmingQuestionMark);
     }
 
-    private static String replaceMustacheUsingPatterns(String query,
-                                                       String placeholder,
-                                                       List<String> mustacheBindings,
-                                                       Pattern sanitizePattern,
-                                                       String replacement) {
+    private static String replaceMustacheUsingPatterns(
+            String query,
+            String placeholder,
+            List<MustacheBindingToken> mustacheBindings,
+            Pattern sanitizePattern,
+            String replacement) {
         ActionConfiguration actionConfiguration = new ActionConfiguration();
         actionConfiguration.setBody(query);
 
-        Set<String> mustacheSet = new HashSet<>(mustacheBindings);
+        Set<MustacheBindingToken> mustacheSet = new HashSet<>(mustacheBindings);
 
-        Map<String, String> replaceParamsMap = mustacheSet.stream().collect(Collectors.toMap(Function.identity(), v -> placeholder));
+        Map<String, String> replaceParamsMap = mustacheSet.stream()
+                .map(mustacheToken -> mustacheToken.getValue())
+                .distinct()
+                .collect(Collectors.toMap(k -> k, v -> placeholder));
 
         // Replace the mustaches with the values mapped to each mustache in replaceParamsMap
         ActionConfiguration updatedActionConfiguration = renderFieldValues(actionConfiguration, replaceParamsMap);
@@ -547,6 +589,5 @@ public class MustacheHelper {
         }
 
         return words;
-
     }
 }

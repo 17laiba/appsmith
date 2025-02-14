@@ -1,4 +1,5 @@
-import { AppState } from "@appsmith/reducers";
+import type { AppState } from "ee/reducers";
+import { ExplorerPinnedState } from "ee/reducers/uiReducers/explorerReducer";
 
 /**
  * returns the pinned state of explorer
@@ -7,7 +8,7 @@ import { AppState } from "@appsmith/reducers";
  * @returns
  */
 export const getExplorerPinned = (state: AppState) => {
-  return state.ui.explorer.pinned;
+  return state.ui.explorer.pinnedState === ExplorerPinnedState.PINNED;
 };
 
 /**
@@ -29,3 +30,9 @@ export const getExplorerWidth = (state: AppState) => {
 export const getExplorerActive = (state: AppState) => {
   return state.ui.explorer.active;
 };
+
+export const getUpdatingEntity = (state: AppState) => {
+  return state.ui.explorer.entity.updatingEntity;
+};
+export const getEditingEntityName = (state: AppState) =>
+  state.ui.explorer.entity.editingEntityName;

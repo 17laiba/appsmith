@@ -1,13 +1,13 @@
+import type { ChangeEvent, ReactNode } from "react";
 import React, {
-  ChangeEvent,
-  ReactNode,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import TreeSelect, { TreeSelectProps as SelectProps } from "rc-tree-select";
+import type { TreeSelectProps as SelectProps } from "rc-tree-select";
+import TreeSelect from "rc-tree-select";
 import {
   TreeSelectContainer,
   DropdownStyles,
@@ -15,17 +15,19 @@ import {
   InputContainer,
 } from "./index.styled";
 import "rc-tree-select/assets/index.less";
-import { DefaultValueType } from "rc-tree-select/lib/interface";
-import { TreeNodeProps } from "rc-tree-select/lib/TreeNode";
-import { DefaultOptionType } from "rc-tree-select/lib/TreeSelect";
+import type { DefaultValueType } from "rc-tree-select/lib/interface";
+import type { TreeNodeProps } from "rc-tree-select/lib/TreeNode";
+import type { DefaultOptionType } from "rc-tree-select/lib/TreeSelect";
 import styled from "styled-components";
-import { RenderMode, TextSize } from "constants/WidgetConstants";
-import { Alignment, Button, Classes, InputGroup } from "@blueprintjs/core";
+import type { RenderMode, TextSize } from "constants/WidgetConstants";
+import type { Alignment } from "@blueprintjs/core";
+import { Button, Classes, InputGroup } from "@blueprintjs/core";
 import { labelMargin, WidgetContainerDiff } from "widgets/WidgetUtils";
-import { Icon, LabelWithTooltip } from "design-system";
+import { Icon } from "@design-system/widgets-old";
 import { Colors } from "constants/Colors";
-import { LabelPosition } from "components/constants";
+import type { LabelPosition } from "components/constants";
 import useDropdown from "widgets/useDropdown";
+import LabelWithTooltip from "widgets/components/LabelWithTooltip";
 import { isNil } from "lodash";
 
 export interface TreeSelectProps
@@ -44,11 +46,15 @@ export interface TreeSelectProps
   labelWidth?: number;
   labelTextColor?: string;
   labelTextSize?: TextSize;
+  onDropdownOpen?: () => void;
+  onDropdownClose?: () => void;
   labelStyle?: string;
+  labelTooltip?: string;
   compactMode: boolean;
   dropDownWidth: number;
   width: number;
   isValid: boolean;
+  isDynamicHeightEnabled: boolean;
   borderRadius: string;
   boxShadow?: string;
   accentColor: string;
@@ -95,6 +101,7 @@ const switcherIcon = (treeNode: TreeNodeProps) => {
       />
     );
   }
+
   return getSvg(treeNode.expanded);
 };
 
@@ -109,6 +116,7 @@ function SingleSelectTreeComponent({
   dropDownWidth,
   expandAll,
   filterText,
+  isDynamicHeightEnabled,
   isFilterable,
   isValid,
   labelAlignment,
@@ -117,9 +125,12 @@ function SingleSelectTreeComponent({
   labelText,
   labelTextColor,
   labelTextSize,
+  labelTooltip,
   labelWidth,
   loading,
   onChange,
+  onDropdownClose,
+  onDropdownOpen,
   options,
   placeholder,
   renderMode,
@@ -135,17 +146,13 @@ function SingleSelectTreeComponent({
   const inputRef = useRef<HTMLInputElement>(null);
   const [memoDropDownWidth, setMemoDropDownWidth] = useState(0);
 
-  const {
-    BackDrop,
-    getPopupContainer,
-    isOpen,
-    onKeyDown,
-    onOpen,
-    selectRef,
-  } = useDropdown({
-    inputRef,
-    renderMode,
-  });
+  const { BackDrop, getPopupContainer, isOpen, onKeyDown, onOpen, selectRef } =
+    useDropdown({
+      inputRef,
+      renderMode,
+      onDropdownOpen,
+      onDropdownClose,
+    });
 
   // treeDefaultExpandAll is uncontrolled after first render,
   // using this to force render to respond to changes in expandAll
@@ -177,14 +184,18 @@ function SingleSelectTreeComponent({
 
   useEffect(() => {
     const parentWidth = width - WidgetContainerDiff;
+
     if (compactMode && labelRef.current) {
       const labelWidth = labelRef.current.getBoundingClientRect().width;
       const widthDiff = parentWidth - labelWidth - labelMargin;
+
       setMemoDropDownWidth(
         widthDiff > dropDownWidth ? widthDiff : dropDownWidth,
       );
+
       return;
     }
+
     setMemoDropDownWidth(
       parentWidth > dropDownWidth ? parentWidth : dropDownWidth,
     );
@@ -192,6 +203,8 @@ function SingleSelectTreeComponent({
 
   const dropdownRender = useCallback(
     (
+      // TODO: Fix this the next time the file is edited
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       menu: React.ReactElement<any, string | React.JSXElementConstructor<any>>,
     ) => (
       <>
@@ -251,9 +264,12 @@ function SingleSelectTreeComponent({
           className={`tree-select-label`}
           color={labelTextColor}
           compact={compactMode}
+          cyHelpTextClassName="tree-select-tooltip"
           disabled={disabled}
           fontSize={labelTextSize}
           fontStyle={labelStyle}
+          helpText={labelTooltip}
+          isDynamicHeightEnabled={isDynamicHeightEnabled}
           loading={loading}
           position={labelPosition}
           ref={labelRef}

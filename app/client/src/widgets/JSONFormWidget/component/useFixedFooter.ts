@@ -1,30 +1,33 @@
 import { throttle } from "lodash";
 import { useLayoutEffect, useRef } from "react";
 
-type UseFixedFooterProps = {
+interface UseFixedFooterProps {
   fixedFooter: boolean;
   activeClassName: string;
-};
+  ref: React.MutableRefObject<HTMLDivElement | null>;
+}
 
 const ERROR_MARGIN = 2;
 
 const scrolledToBottom = (element: HTMLElement) => {
   const { clientHeight, scrollHeight, scrollTop } = element;
+
   return scrollHeight - scrollTop - clientHeight < ERROR_MARGIN;
 };
 
 const hasOverflowingContent = (element: HTMLElement) => {
   const { clientHeight, scrollHeight } = element;
+
   return scrollHeight - clientHeight > ERROR_MARGIN;
 };
 
 const THROTTLE_TIMEOUT = 50;
 
 function useFixedFooter<
-  TBodyElement extends HTMLElement = HTMLDivElement,
-  TFooterElement extends HTMLElement = HTMLDivElement
->({ activeClassName, fixedFooter }: UseFixedFooterProps) {
-  const bodyRef = useRef<TBodyElement>(null);
+  HTMLDivElement extends HTMLElement,
+  TFooterElement extends HTMLElement = HTMLDivElement,
+>({ activeClassName, fixedFooter, ref }: UseFixedFooterProps) {
+  const bodyRef = ref;
   const footerRef = useRef<TFooterElement>(null);
 
   const isOverflowing = bodyRef.current
@@ -41,12 +44,14 @@ function useFixedFooter<
     const onScrollOrResize = throttle(() => {
       if (fixedFooter && footerRef.current && bodyRef.current) {
         const hasScrolledToBottom = scrolledToBottom(bodyRef.current);
+
         applyScrollClass(footerRef.current, !hasScrolledToBottom);
       }
     }, THROTTLE_TIMEOUT);
 
     if (bodyRef.current) {
       const resizeObserver = new ResizeObserver(onScrollOrResize);
+
       resizeObserver.observe(bodyRef.current);
       bodyRef.current.addEventListener("scroll", onScrollOrResize);
     }
@@ -66,6 +71,7 @@ function useFixedFooter<
     if (fixedFooter && footerRef.current && bodyRef.current) {
       const hasScrolledToBottom = scrolledToBottom(bodyRef.current);
       const shouldApplyClass = !hasScrolledToBottom && isOverflowing;
+
       applyScrollClass(footerRef.current, shouldApplyClass);
     }
   }, [fixedFooter, isOverflowing]);

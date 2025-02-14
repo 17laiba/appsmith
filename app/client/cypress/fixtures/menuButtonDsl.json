@@ -2,41 +2,65 @@
   "dsl": {
     "widgetName": "MainContainer",
     "backgroundColor": "none",
-    "rightColumn": 909,
-    "snapColumns": 64,
+    "rightColumn": 4896.0,
+    "snapColumns": 64.0,
     "detachFromLayout": true,
     "widgetId": "0",
-    "topRow": 0,
-    "bottomRow": 710,
+    "topRow": 0.0,
+    "bottomRow": 790.0,
     "containerStyle": "none",
-    "snapRows": 125,
-    "parentRowSpace": 1,
+    "snapRows": 125.0,
+    "parentRowSpace": 1.0,
     "type": "CANVAS_WIDGET",
     "canExtend": true,
-    "version": 53,
-    "minHeight": 690,
-    "parentColumnSpace": 1,
+    "version": 66.0,
+    "minHeight": 1292.0,
+    "dynamicTriggerPathList": [],
+    "parentColumnSpace": 1.0,
     "dynamicBindingPathList": [],
-    "leftColumn": 0,
+    "leftColumn": 0.0,
     "children": [
       {
         "isCompact": false,
+        "boxShadow": "none",
         "widgetName": "MenuButton1",
-        "displayName": "Menu Button",
-        "iconSVG": "/static/media/icon.0341d17d.svg",
-        "topRow": 5,
-        "bottomRow": 9,
-        "parentRowSpace": 10,
+        "configureMenuItems": {
+          "label": "Configure menu items",
+          "id": "config",
+          "config": {
+            "id": "config",
+            "label": "",
+            "isVisible": true,
+            "isDisabled": false
+          }
+        },
+        "displayName": "Menu button",
+        "iconSVG": "/static/media/icon.0341d17d67020c8bfc560cc5928af2a7.svg",
+        "topRow": 13.0,
+        "bottomRow": 17.0,
+        "parentRowSpace": 10.0,
         "type": "MENU_BUTTON_WIDGET",
         "hideCard": false,
         "animateLoading": true,
-        "parentColumnSpace": 14.015625,
-        "leftColumn": 3,
+        "parentColumnSpace": 12.5625,
+        "dynamicTriggerPathList": [],
+        "leftColumn": 14.0,
+        "dynamicBindingPathList": [
+          {
+            "key": "menuColor"
+          },
+          {
+            "key": "borderRadius"
+          }
+        ],
         "isDisabled": false,
-        "key": "ngk48zgyuy",
-        "rightColumn": 19,
+        "sourceData": "",
+        "key": "ruwr6lq57j",
+        "sourceDataKeys": [],
+        "isDeprecated": false,
+        "rightColumn": 30.0,
         "menuVariant": "PRIMARY",
-        "widgetId": "z2o5n9g9yw",
+        "widgetId": "varnzc9ez9",
         "menuItems": {
           "menuItem1": {
             "label": "First Menu Item",
@@ -44,7 +68,7 @@
             "widgetId": "",
             "isVisible": true,
             "isDisabled": false,
-            "index": 0
+            "index": 0.0
           },
           "menuItem2": {
             "label": "Second Menu Item",
@@ -52,7 +76,7 @@
             "widgetId": "",
             "isVisible": true,
             "isDisabled": false,
-            "index": 1
+            "index": 1.0
           },
           "menuItem3": {
             "label": "Third Menu Item",
@@ -60,16 +84,18 @@
             "widgetId": "",
             "isVisible": true,
             "isDisabled": false,
-            "index": 2
+            "index": 2.0
           }
         },
         "isVisible": true,
         "label": "Open Menu",
-        "version": 1,
+        "version": 1.0,
         "parentId": "0",
         "renderMode": "CANVAS",
         "isLoading": false,
-        "menuColor": "#03B365",
+        "borderRadius": "{{appsmith.theme.borderRadius.appBorderRadius}}",
+        "menuItemsSource": "STATIC",
+        "menuColor": "{{appsmith.theme.colors.primaryColor}}",
         "placement": "CENTER"
       }
     ]

@@ -1,5 +1,6 @@
 import { ValidationTypes } from "constants/WidgetValidation";
-import { ColumnTypes, TableWidgetProps } from "widgets/TableWidgetV2/constants";
+import type { TableWidgetProps } from "widgets/TableWidgetV2/constants";
+import { ColumnTypes } from "widgets/TableWidgetV2/constants";
 import { hideByColumnType } from "../../propertyUtils";
 
 export default {
@@ -7,7 +8,7 @@ export default {
   children: [
     {
       propertyName: "buttonColor",
-      label: "Button Color",
+      label: "Button color",
       controlType: "PRIMARY_COLUMNS_COLOR_PICKER_V2",
       helpText: "Changes the color of the button",
       isJSConvertible: true,
@@ -21,7 +22,7 @@ export default {
       dependencies: ["primaryColumns", "columnOrder"],
       isBindProperty: true,
       validation: {
-        type: ValidationTypes.TABLE_PROPERTY,
+        type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
         params: {
           type: ValidationTypes.TEXT,
           params: {
@@ -34,7 +35,7 @@ export default {
     {
       propertyName: "menuColor",
       helpText: "Sets the custom color preset based on the menu button variant",
-      label: "Button Color",
+      label: "Button color",
       controlType: "PRIMARY_COLUMNS_COLOR_PICKER_V2",
       customJSControl: "TABLE_COMPUTE_VALUE",
       isJSConvertible: true,
@@ -42,7 +43,7 @@ export default {
       isTriggerProperty: false,
       placeholderText: "#FFFFFF / Gray / rgb(255, 99, 71)",
       validation: {
-        type: ValidationTypes.TABLE_PROPERTY,
+        type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
         params: {
           type: ValidationTypes.TEXT,
           params: {
@@ -65,7 +66,7 @@ export default {
       dependencies: ["primaryColumns", "columnOrder"],
       isBindProperty: true,
       validation: {
-        type: ValidationTypes.TABLE_PROPERTY,
+        type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
         params: {
           type: ValidationTypes.TEXT,
           params: {
@@ -77,7 +78,7 @@ export default {
     },
     {
       propertyName: "textColor",
-      label: "Text Color",
+      label: "Text color",
       helpText: "Controls the color of text in the column",
       controlType: "PRIMARY_COLUMNS_COLOR_PICKER_V2",
       isJSConvertible: true,
@@ -85,7 +86,7 @@ export default {
       dependencies: ["primaryColumns", "columnOrder"],
       isBindProperty: true,
       validation: {
-        type: ValidationTypes.TABLE_PROPERTY,
+        type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
         params: {
           type: ValidationTypes.TEXT,
           params: {
@@ -99,6 +100,7 @@ export default {
           ColumnTypes.TEXT,
           ColumnTypes.DATE,
           ColumnTypes.NUMBER,
+          ColumnTypes.CURRENCY,
           ColumnTypes.URL,
         ]);
       },

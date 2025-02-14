@@ -3,8 +3,8 @@ import { LabelPosition } from "components/constants";
 import { BlueprintControlTransform } from "constants/DefaultTheme";
 import React from "react";
 import styled from "styled-components";
-import { ComponentProps } from "widgets/BaseComponent";
-import { AlignWidgetTypes } from "widgets/constants";
+import type { ComponentProps } from "widgets/BaseComponent";
+import { AlignWidgetTypes } from "WidgetProvider/constants";
 import { Colors } from "constants/Colors";
 import { FontStyleTypes } from "constants/WidgetConstants";
 import { darkenColor } from "widgets/WidgetUtils";
@@ -17,19 +17,32 @@ export interface SwitchComponentProps extends ComponentProps {
   alignWidget: AlignWidgetTypes;
   labelPosition: LabelPosition;
   accentColor: string;
+  // TODO: Fix this the next time the file is edited
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   inputRef?: (ref: HTMLInputElement | null) => any;
   labelTextColor?: string;
   labelTextSize?: string;
   labelStyle?: string;
+  isDynamicHeightEnabled?: boolean;
+  minHeight?: number;
+  isLabelInline?: boolean;
 }
 
 const SwitchComponentContainer = styled.div<{
   accentColor: string;
+  minHeight?: number;
+  width?: string;
 }>`
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: stretch;
+
+  ${({ minHeight }) => `
+    ${minHeight ? `min-height: ${minHeight}px;` : undefined}`};
+
+  width: 100%;
+
   ${BlueprintControlTransform}
 `;
 
@@ -39,6 +52,8 @@ const SwitchLabel = styled.div<{
   labelTextColor?: string;
   labelTextSize?: string;
   labelStyle?: string;
+  isDynamicHeightEnabled?: boolean;
+  isLabelInline?: boolean;
 }>`
   width: 100%;
   display: inline-block;
@@ -52,43 +67,54 @@ const SwitchLabel = styled.div<{
     labelStyle?.includes(FontStyleTypes.ITALIC) ? "italic" : "normal"
   };
   `}
+
+  ${({ isDynamicHeightEnabled }) =>
+    isDynamicHeightEnabled ? "&& { word-break: break-all; }" : ""};
+
+  ${({ isLabelInline }) =>
+    isLabelInline &&
+    `
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    word-wrap: normal;
+  `}
 `;
 
 export const StyledSwitch = styled(Switch)<{
-  accentColor: string;
+  $accentColor: string;
   inline?: boolean;
 }>`
   &.${Classes.CONTROL} {
-    margin: 0;
-  }
-
-  &.${Classes.CONTROL} {
     & input:checked ~ .${Classes.CONTROL_INDICATOR} {
-      background: ${({ accentColor }) => `${accentColor}`} !important;
-      border: 1px solid ${({ accentColor }) => `${accentColor}`} !important;
+      background: ${({ $accentColor }) => `${$accentColor}`} !important;
+      border: 1px solid ${({ $accentColor }) => `${$accentColor}`} !important;
     }
+    margin: 0px;
 
-    &:hover input:checked:not(:disabled) ~ .bp3-control-indicator {
-      background: ${({ accentColor }) =>
-        `${darkenColor(accentColor)}`} !important;
-      border: 1px solid ${({ accentColor }) =>
-        `${darkenColor(accentColor)}`} !important;
+    &:hover input:checked:not(:disabled) ~ .bp3-control-indicator,
+    input:checked:not(:disabled):focus ~ .bp3-control-indicator {
+      background: ${({ $accentColor }) =>
+        `${darkenColor($accentColor)}`} !important;
+      border: 1px solid ${({ $accentColor }) => `${darkenColor($accentColor)}`} !important;
     }
   }
 
   &.${Classes.SWITCH} {
     ${({ inline }) => (!!inline ? "" : "width: 100%;")}
     & input:not(:disabled):active:checked ~ .${Classes.CONTROL_INDICATOR} {
-      background: ${({ accentColor }) => `${accentColor}`} !important;
+      background: ${({ $accentColor }) => `${$accentColor}`} !important;
     }
   }
 `;
 
-export default function SwitchComponent({
+function SwitchComponent({
   accentColor,
   alignWidget = AlignWidgetTypes.LEFT,
   inputRef,
   isDisabled,
+  isDynamicHeightEnabled,
+  isLabelInline,
   isLoading,
   isSwitchedOn,
   label,
@@ -96,19 +122,16 @@ export default function SwitchComponent({
   labelStyle,
   labelTextColor,
   labelTextSize,
+  minHeight,
   onChange,
-}: SwitchComponentProps) {
-  /**
-   * When the label position is left align switch to the right
-   * When the label position is right align switch to the left
-   */
+}: SwitchComponentProps): JSX.Element {
   const switchAlignClass =
     labelPosition === LabelPosition.Right ? "left" : "right";
 
   return (
-    <SwitchComponentContainer accentColor={accentColor}>
+    <SwitchComponentContainer accentColor={accentColor} minHeight={minHeight}>
       <StyledSwitch
-        accentColor={accentColor}
+        $accentColor={accentColor}
         alignIndicator={switchAlignClass}
         checked={isSwitchedOn}
         className={
@@ -127,6 +150,8 @@ export default function SwitchComponent({
             alignment={alignWidget}
             className="t--switch-widget-label"
             disabled={isDisabled}
+            isDynamicHeightEnabled={isDynamicHeightEnabled}
+            isLabelInline={isLabelInline}
             labelStyle={labelStyle}
             labelTextColor={labelTextColor}
             labelTextSize={labelTextSize}
@@ -139,3 +164,5 @@ export default function SwitchComponent({
     </SwitchComponentContainer>
   );
 }
+
+export default SwitchComponent;

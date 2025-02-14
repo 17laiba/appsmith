@@ -1,219 +1,157 @@
-import {
-  ActionDataState,
-  ActionDataWithMeta,
-} from "reducers/entityReducers/actionsReducer";
-import { WidgetProps } from "widgets/BaseWidget";
-import { ActionResponse } from "api/ActionAPI";
-import { CanvasWidgetsReduxState } from "reducers/entityReducers/canvasWidgetsReducer";
-import { MetaState } from "reducers/entityReducers/metaReducer";
-import { Page } from "@appsmith/constants/ReduxActionConstants";
-import { ActionConfig, PluginType } from "entities/Action";
-import { AppDataState } from "reducers/entityReducers/appReducer";
-import { DependencyMap, DynamicPath } from "utils/DynamicBindingUtils";
-import { generateDataTreeAction } from "entities/DataTree/dataTreeAction";
-import { generateDataTreeJSAction } from "entities/DataTree/dataTreeJSAction";
+import { generateDataTreeAction } from "ee/entities/DataTree/dataTreeAction";
+import { generateDataTreeJSAction } from "ee/entities/DataTree/dataTreeJSAction";
 import { generateDataTreeWidget } from "entities/DataTree/dataTreeWidget";
-import { JSCollectionDataState } from "reducers/entityReducers/jsActionsReducer";
-import { ValidationConfig } from "constants/PropertyControlConstants";
-import { Variable } from "entities/JSCollection";
-import {
-  ActionDescription,
-  ClearPluginActionDescription,
-  RunPluginActionDescription,
-} from "entities/DataTree/actionTriggers";
-import { AppTheme } from "entities/AppTheming";
-import { PluginId } from "api/PluginApi";
-import log from "loglevel";
-
-export type ActionDispatcher = (
-  ...args: any[]
-) => Promise<unknown> | ActionDescription;
-
-export enum ENTITY_TYPE {
-  ACTION = "ACTION",
-  WIDGET = "WIDGET",
-  APPSMITH = "APPSMITH",
-  JSACTION = "JSACTION",
-}
-
-export enum EvaluationSubstitutionType {
-  TEMPLATE = "TEMPLATE",
-  PARAMETER = "PARAMETER",
-  SMART_SUBSTITUTE = "SMART_SUBSTITUTE",
-}
-
-// Private widgets do not get evaluated
-// For example, for widget Button1 in a List widget List1, List1.template.Button1.text gets evaluated,
-// so there is no need to evaluate Button1.text
-export type PrivateWidgets = Record<string, true>;
-
-export interface DataTreeAction
-  extends Omit<ActionDataWithMeta, "data" | "config"> {
-  data: ActionResponse["body"];
-  actionId: string;
-  config: Partial<ActionConfig>;
-  pluginType: PluginType;
-  pluginId: PluginId;
-  name: string;
-  run: ActionDispatcher | RunPluginActionDescription | Record<string, unknown>;
-  clear:
-    | ActionDispatcher
-    | ClearPluginActionDescription
-    | Record<string, unknown>;
-  dynamicBindingPathList: DynamicPath[];
-  bindingPaths: Record<string, EvaluationSubstitutionType>;
-  reactivePaths: Record<string, EvaluationSubstitutionType>;
-  ENTITY_TYPE: ENTITY_TYPE.ACTION;
-  dependencyMap: DependencyMap;
-  logBlackList: Record<string, true>;
-  datasourceUrl: string;
-}
-
-export interface DataTreeJSAction {
-  pluginType: PluginType.JS;
-  name: string;
-  ENTITY_TYPE: ENTITY_TYPE.JSACTION;
-  body: string;
-  [propName: string]: any;
-  meta: Record<string, MetaArgs>;
-  dynamicBindingPathList: DynamicPath[];
-  bindingPaths: Record<string, EvaluationSubstitutionType>;
-  reactivePaths: Record<string, EvaluationSubstitutionType>;
-  variables: Array<string>;
-  dependencyMap: DependencyMap;
-}
-
-export interface MetaArgs {
-  arguments: Variable[];
-  isAsync: boolean;
-  confirmBeforeExecute: boolean;
-}
-/**
- *  Map of overriding property as key and overridden property as values
- */
-export type OverridingPropertyPaths = Record<string, string[]>;
-
-export enum OverridingPropertyType {
-  META = "META",
-  DEFAULT = "DEFAULT",
-}
-/**
- *  Map of property name as key and value as object with defaultPropertyName and metaPropertyName which it depends on.
- */
-export type PropertyOverrideDependency = Record<
-  string,
-  {
-    DEFAULT: string | undefined;
-    META: string | undefined;
-  }
->;
-
-export interface DataTreeWidget extends WidgetProps {
-  bindingPaths: Record<string, EvaluationSubstitutionType>;
-  reactivePaths: Record<string, EvaluationSubstitutionType>;
-  triggerPaths: Record<string, boolean>;
-  validationPaths: Record<string, ValidationConfig>;
-  ENTITY_TYPE: ENTITY_TYPE.WIDGET;
-  logBlackList: Record<string, true>;
-  propertyOverrideDependency: PropertyOverrideDependency;
-  overridingPropertyPaths: OverridingPropertyPaths;
-  privateWidgets: PrivateWidgets;
-  meta: Record<string, unknown>;
-}
-
-export interface DataTreeAppsmith extends Omit<AppDataState, "store"> {
-  ENTITY_TYPE: ENTITY_TYPE.APPSMITH;
-  store: Record<string, unknown>;
-  theme: AppTheme["properties"];
-}
-export type DataTreeObjectEntity =
-  | DataTreeAction
-  | DataTreeJSAction
-  | DataTreeWidget
-  | DataTreeAppsmith;
-
-export type DataTreeEntity = DataTreeObjectEntity | Page[] | ActionDispatcher;
-
-export type DataTree = {
-  [entityName: string]: DataTreeEntity;
-};
-
-type DataTreeSeed = {
-  actions: ActionDataState;
-  editorConfigs: Record<string, any[]>;
-  pluginDependencyConfig: Record<string, DependencyMap>;
-  widgets: CanvasWidgetsReduxState;
-  widgetsMeta: MetaState;
-  pageList: Page[];
-  appData: AppDataState;
-  jsActions: JSCollectionDataState;
-  theme: AppTheme["properties"];
-};
+import { generateDataTreeModuleInputs } from "ee/entities/DataTree/utils";
+import type { ConfigTree, UnEvalTree } from "entities/DataTree/dataTreeTypes";
+import { isEmpty } from "lodash";
+import { generateModuleInstance } from "ee/entities/DataTree/dataTreeModuleInstance";
+import { endSpan, startRootSpan } from "instrumentation/generateTraces";
+import type { ActionDataState } from "ee/reducers/entityReducers/actionsReducer";
+import type { JSCollectionDataState } from "ee/reducers/entityReducers/jsActionsReducer";
+import type { LayoutSystemTypes } from "layoutSystems/types";
+import type { CanvasWidgetsReduxState } from "reducers/entityReducers/canvasWidgetsReducer";
+import type { MetaState } from "reducers/entityReducers/metaReducer";
+import type { LoadingEntitiesState } from "reducers/evaluationReducers/loadingEntitiesReducer";
+import type { MetaWidgetsReduxState } from "reducers/entityReducers/metaWidgetsReducer";
+import type { Module } from "ee/constants/ModuleConstants";
+import type { ModuleInstance } from "ee/constants/ModuleInstanceConstants";
+import type {
+  DependencyMap,
+  FormEditorConfigs,
+} from "utils/DynamicBindingUtils";
+import type { DataTreeSeed } from "ee/entities/DataTree/types";
 
 export class DataTreeFactory {
-  static create({
-    actions,
-    appData,
-    editorConfigs,
-    jsActions,
-    pageList,
-    pluginDependencyConfig,
-    theme,
-    widgets,
-    widgetsMeta,
-  }: DataTreeSeed): DataTree {
-    const dataTree: DataTree = {};
-    const start = performance.now();
-    const startActions = performance.now();
+  public static metaWidgets(
+    metaWidgets: MetaWidgetsReduxState,
+    widgetsMeta: MetaState,
+    loadingEntities: LoadingEntitiesState,
+  ) {
+    const dataTree: UnEvalTree = {};
+    const configTree: ConfigTree = {};
+    const metaWidgetsSpan = startRootSpan("DataTreeFactory.metaWidgets");
+
+    Object.values(metaWidgets).forEach((widget) => {
+      const { configEntity, unEvalEntity } = generateDataTreeWidget(
+        widget,
+        widgetsMeta[widget.metaWidgetId || widget.widgetId],
+        loadingEntities,
+      );
+
+      dataTree[widget.widgetName] = unEvalEntity;
+      configTree[widget.widgetName] = configEntity;
+    });
+    endSpan(metaWidgetsSpan);
+
+    return {
+      dataTree,
+      configTree,
+    };
+  }
+
+  public static widgets(
+    moduleInputs: Module["inputsForm"],
+    moduleInstances: Record<string, ModuleInstance> | null,
+    moduleInstanceEntities: DataTreeSeed["moduleInstanceEntities"],
+    widgets: CanvasWidgetsReduxState,
+    widgetsMeta: MetaState,
+    loadingEntities: LoadingEntitiesState,
+    layoutSystemType: LayoutSystemTypes,
+    isMobile: boolean,
+  ) {
+    const dataTree: UnEvalTree = {};
+    const configTree: ConfigTree = {};
+    const widgetsSpan = startRootSpan("DataTreeFactory.widgets");
+
+    if (!isEmpty(moduleInputs)) {
+      const { configEntity, unEvalEntity } =
+        generateDataTreeModuleInputs(moduleInputs);
+
+      if (!!configEntity && !!unEvalEntity) {
+        dataTree.inputs = unEvalEntity;
+        configTree.inputs = configEntity;
+      }
+    }
+
+    if (!isEmpty(moduleInstances)) {
+      Object.values(moduleInstances).forEach((moduleInstance) => {
+        const { configEntity, unEvalEntity } = generateModuleInstance(
+          moduleInstance,
+          moduleInstanceEntities,
+        );
+
+        if (!!configEntity && !!unEvalEntity) {
+          dataTree[moduleInstance.name] = unEvalEntity;
+          configTree[moduleInstance.name] = configEntity;
+        }
+      });
+    }
+
+    Object.values(widgets).forEach((widget) => {
+      const { configEntity, unEvalEntity } = generateDataTreeWidget(
+        widget,
+        widgetsMeta[widget.metaWidgetId || widget.widgetId],
+        loadingEntities,
+        layoutSystemType,
+        isMobile,
+      );
+
+      dataTree[widget.widgetName] = unEvalEntity;
+      configTree[widget.widgetName] = configEntity;
+    });
+    endSpan(widgetsSpan);
+
+    return {
+      dataTree,
+      configTree,
+    };
+  }
+
+  public static jsActions(jsActions: JSCollectionDataState) {
+    const dataTree: UnEvalTree = {};
+    const configTree: ConfigTree = {};
+    const actionsSpan = startRootSpan("DataTreeFactory.jsActions");
+
+    jsActions.forEach((js) => {
+      const { configEntity, unEvalEntity } = generateDataTreeJSAction(js);
+
+      dataTree[js.config.name] = unEvalEntity;
+      configTree[js.config.name] = configEntity;
+    });
+    endSpan(actionsSpan);
+
+    return {
+      dataTree,
+      configTree,
+    };
+  }
+
+  public static actions(
+    actions: ActionDataState,
+    editorConfigs: FormEditorConfigs,
+    pluginDependencyConfig: Record<string, DependencyMap>,
+  ) {
+    const dataTree: UnEvalTree = {};
+    const configTree: ConfigTree = {};
+    const actionsSpan = startRootSpan("DataTreeFactory.actions");
 
     actions.forEach((action) => {
       const editorConfig = editorConfigs[action.config.pluginId];
       const dependencyConfig = pluginDependencyConfig[action.config.pluginId];
-      dataTree[action.config.name] = generateDataTreeAction(
+      const { configEntity, unEvalEntity } = generateDataTreeAction(
         action,
         editorConfig,
         dependencyConfig,
       );
+
+      dataTree[action.config.name] = unEvalEntity;
+      configTree[action.config.name] = configEntity;
     });
-    const endActions = performance.now();
+    endSpan(actionsSpan);
 
-    const startJsActions = performance.now();
-
-    jsActions.forEach((js) => {
-      dataTree[js.config.name] = generateDataTreeJSAction(js);
-    });
-    const endJsActions = performance.now();
-
-    const startWidgets = performance.now();
-
-    Object.values(widgets).forEach((widget) => {
-      dataTree[widget.widgetName] = generateDataTreeWidget(
-        widget,
-        widgetsMeta[widget.widgetId],
-      );
-    });
-    const endWidgets = performance.now();
-
-    dataTree.pageList = pageList;
-    dataTree.appsmith = {
-      ...appData,
-      // combine both persistent and transient state with the transient state
-      // taking precedence in case the key is the same
-      store: { ...appData.store.persistent, ...appData.store.transient },
-      theme,
-    } as DataTreeAppsmith;
-    (dataTree.appsmith as DataTreeAppsmith).ENTITY_TYPE = ENTITY_TYPE.APPSMITH;
-    const end = performance.now();
-
-    const out = {
-      total: end - start,
-      widgets: endWidgets - startWidgets,
-      actions: endActions - startActions,
-      jsActions: endJsActions - startJsActions,
+    return {
+      dataTree,
+      configTree,
     };
-
-    log.debug("### Create unevalTree timing", out);
-
-    return dataTree;
   }
 }

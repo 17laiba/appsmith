@@ -1,15 +1,11 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 
-import { LabelWithTooltip } from "design-system";
-import { LabelPosition } from "components/constants";
-import { Alignment } from "@blueprintjs/core";
-import { TextSize } from "constants/WidgetConstants";
-import {
-  getChangeValue,
-  getPosition,
-  getSliderStyles,
-  SliderSizes,
-} from "../utils";
+import LabelWithTooltip from "widgets/components/LabelWithTooltip";
+import type { LabelPosition } from "components/constants";
+import type { Alignment } from "@blueprintjs/core";
+import type { TextSize } from "constants/WidgetConstants";
+import type { SliderSizes } from "../utils";
+import { getChangeValue, getPosition, getSliderStyles } from "../utils";
 import { useMove } from "../use-move";
 import { SliderContainer } from "./Container";
 import { SliderRoot } from "./SilderRoot";
@@ -51,6 +47,9 @@ export interface SliderComponentProps
   /** If true label will be not be hidden when user stops dragging */
   tooltipAlwaysOn: boolean;
 
+  /** helpText for the label tooltip */
+  labelTooltip?: string;
+
   /** Disables slider */
   disabled?: boolean;
 
@@ -72,7 +71,7 @@ export interface SliderComponentProps
   /** Color for the Label text  */
   labelTextColor?: string;
 
-  /** Font Size for the Label text  */
+  /** Font size for the Label text  */
   labelTextSize?: TextSize;
 
   /** Font Style for the Label text  */
@@ -83,6 +82,9 @@ export interface SliderComponentProps
 
   /** determines whether to display mark labels or only marks */
   showMarksLabel: boolean;
+
+  /** Width of the Label in pixels, used only when Position is Left   */
+  labelComponentWidth?: number;
 }
 
 const SliderComponent = (props: SliderComponentProps) => {
@@ -95,6 +97,7 @@ const SliderComponent = (props: SliderComponentProps) => {
     labelText,
     labelTextColor,
     labelTextSize,
+    labelTooltip,
     labelWidth,
     loading,
     marks,
@@ -134,6 +137,7 @@ const SliderComponent = (props: SliderComponentProps) => {
           max,
           step,
         });
+
         setValue(nextValue);
         valueRef.current = nextValue;
       }
@@ -168,6 +172,7 @@ const SliderComponent = (props: SliderComponentProps) => {
           event.preventDefault();
           thumb.current?.focus();
           const nextValue = Math.min(Math.max(_value + step, min), max);
+
           onChangeEnd(nextValue);
           setValue(nextValue);
           break;
@@ -178,6 +183,7 @@ const SliderComponent = (props: SliderComponentProps) => {
           event.preventDefault();
           thumb.current?.focus();
           const nextValue = Math.min(Math.max(_value - step, min), max);
+
           onChangeEnd(nextValue);
           setValue(nextValue);
           break;
@@ -207,6 +213,7 @@ const SliderComponent = (props: SliderComponentProps) => {
           disabled={disabled}
           fontSize={labelTextSize}
           fontStyle={labelStyle}
+          helpText={labelTooltip}
           loading={loading}
           position={labelPosition}
           text={labelText}

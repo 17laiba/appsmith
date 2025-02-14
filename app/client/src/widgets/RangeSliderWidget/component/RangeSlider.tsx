@@ -1,16 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
 import throttle from "lodash/throttle";
 
-import { LabelWithTooltip } from "design-system";
-import { LabelPosition } from "components/constants";
-import { Alignment } from "@blueprintjs/core";
-import { TextSize } from "constants/WidgetConstants";
+import LabelWithTooltip from "widgets/components/LabelWithTooltip";
+import type { LabelPosition } from "components/constants";
+import type { Alignment } from "@blueprintjs/core";
+import type { TextSize } from "constants/WidgetConstants";
 import { useMove } from "../../NumberSliderWidget/use-move";
+import type { SliderSizes } from "../../NumberSliderWidget/utils";
 import {
   getClientPosition,
   getPosition,
   getChangeValue,
-  SliderSizes,
   getSliderStyles,
 } from "../../NumberSliderWidget/utils";
 import { Thumb } from "../../NumberSliderWidget/component/Thumb";
@@ -64,6 +64,9 @@ export interface RangeSliderComponentProps
   /** If true label will be not be hidden when user stops dragging */
   tooltipAlwaysOn: boolean;
 
+  /** helpText for the label tooltip */
+  labelTooltip?: string;
+
   /** Disables slider */
   disabled?: boolean;
 
@@ -85,7 +88,7 @@ export interface RangeSliderComponentProps
   /** Color for the Label text  */
   labelTextColor?: string;
 
-  /** Font Size for the Label text  */
+  /** Font size for the Label text  */
   labelTextSize?: TextSize;
 
   /** Font Style for the Label text  */
@@ -93,6 +96,9 @@ export interface RangeSliderComponentProps
 
   /** Loading property internal to every widget  */
   loading: boolean;
+
+  /** Width of the Label in pixels, used only when Position is Left   */
+  labelComponentWidth?: number;
 }
 
 const RangeSliderComponent = (props: RangeSliderComponentProps) => {
@@ -106,6 +112,7 @@ const RangeSliderComponent = (props: RangeSliderComponentProps) => {
     labelText,
     labelTextColor,
     labelTextSize,
+    labelTooltip,
     labelWidth,
     loading,
     marks,
@@ -155,6 +162,7 @@ const RangeSliderComponent = (props: RangeSliderComponentProps) => {
     triggerChangeEnd: boolean,
   ) => {
     const clone: Value = [...valueRef.current];
+
     clone[index] = val;
 
     if (index === 0) {
@@ -192,6 +200,7 @@ const RangeSliderComponent = (props: RangeSliderComponentProps) => {
         max,
         step,
       });
+
       setRangedValue(nextValue, thumbIndex.current || 0, false);
     }
   };
@@ -237,12 +246,14 @@ const RangeSliderComponent = (props: RangeSliderComponentProps) => {
       Math.abs(_value[0] - changeValue) > Math.abs(_value[1] - changeValue)
         ? 1
         : 0;
+
     thumbIndex.current = nearestHandle;
   };
 
   const getFocusedThumbIndex = () => {
     if (focused !== 1 && focused !== 0) {
       setFocused(0);
+
       return 0;
     }
 
@@ -262,6 +273,7 @@ const RangeSliderComponent = (props: RangeSliderComponentProps) => {
         case "ArrowRight": {
           event.preventDefault();
           const focusedIndex = getFocusedThumbIndex();
+
           thumbs.current[focusedIndex].focus();
           throttledSetRangedValue(
             Math.min(Math.max(valueRef.current[focusedIndex] + step, min), max),
@@ -274,6 +286,7 @@ const RangeSliderComponent = (props: RangeSliderComponentProps) => {
         case "ArrowLeft": {
           event.preventDefault();
           const focusedIndex = getFocusedThumbIndex();
+
           thumbs.current[focusedIndex].focus();
           throttledSetRangedValue(
             Math.min(Math.max(valueRef.current[focusedIndex] - step, min), max),
@@ -314,6 +327,7 @@ const RangeSliderComponent = (props: RangeSliderComponentProps) => {
           disabled={disabled}
           fontSize={labelTextSize}
           fontStyle={labelStyle}
+          helpText={labelTooltip}
           loading={loading}
           position={labelPosition}
           text={labelText}
@@ -352,6 +366,7 @@ const RangeSliderComponent = (props: RangeSliderComponentProps) => {
             const nearestValue =
               Math.abs(_value[0] - val) > Math.abs(_value[1] - val) ? 1 : 0;
             const clone: Value = [..._value];
+
             clone[nearestValue] = val;
             _setValue(clone);
           }}

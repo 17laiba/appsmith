@@ -1,9 +1,6 @@
 import { ValidationTypes } from "constants/WidgetValidation";
-import {
-  ColumnTypes,
-  ICON_NAMES,
-  TableWidgetProps,
-} from "widgets/TableWidgetV2/constants";
+import type { TableWidgetProps } from "widgets/TableWidgetV2/constants";
+import { ColumnTypes, ICON_NAMES } from "widgets/TableWidgetV2/constants";
 import { hideByColumnType, updateIconAlignment } from "../../propertyUtils";
 
 export default {
@@ -24,7 +21,7 @@ export default {
       isBindProperty: true,
       isTriggerProperty: false,
       validation: {
-        type: ValidationTypes.TABLE_PROPERTY,
+        type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
         params: {
           type: ValidationTypes.TEXT,
           params: {
@@ -38,14 +35,15 @@ export default {
       label: "Position",
       helpText: "Sets the icon alignment of the menu button",
       controlType: "ICON_TABS",
-      fullWidth: true,
+      defaultValue: "left",
+      fullWidth: false,
       options: [
         {
-          icon: "VERTICAL_LEFT",
+          startIcon: "skip-left-line",
           value: "left",
         },
         {
-          icon: "VERTICAL_RIGHT",
+          startIcon: "skip-right-line",
           value: "right",
         },
       ],

@@ -1,20 +1,21 @@
 import React from "react";
 import styled, { createGlobalStyle } from "styled-components";
-import { Dropdown, DropdownOption, Icon, IconSize } from "design-system";
+import type { DropdownOption } from "@design-system/widgets-old";
+import { Dropdown, Icon, IconSize } from "@design-system/widgets-old";
 import { countryToFlag } from "./utilities";
-import { ISDCodeOptions, ISDCodeProps } from "constants/ISDCodes_v2";
+import type { ISDCodeProps } from "constants/ISDCodes_v2";
+import { ISDCodeOptions } from "constants/ISDCodes_v2";
 import { Colors } from "constants/Colors";
 import { Classes } from "@blueprintjs/core";
 import { lightenColor } from "widgets/WidgetUtils";
+import { CANVAS_ART_BOARD } from "constants/componentClassNameConstants";
 
-type DropdownTriggerIconWrapperProp = {
+interface DropdownTriggerIconWrapperProp {
   allowDialCodeChange: boolean;
   disabled?: boolean;
-};
+}
 
-const DropdownTriggerIconWrapper = styled.button<
-  DropdownTriggerIconWrapperProp
->`
+const DropdownTriggerIconWrapper = styled.button<DropdownTriggerIconWrapperProp>`
   height: 100%;
   display: flex;
   align-items: center;
@@ -74,6 +75,7 @@ const DropdownTriggerIconWrapper = styled.button<
 `;
 
 const FlagWrapper = styled.span`
+  font-family: "Twemoji Country Flags";
   font-size: 20px;
   line-height: 19px;
 `;
@@ -82,6 +84,16 @@ const Code = styled.span``;
 
 const StyledIcon = styled(Icon)`
   margin-left: 2px;
+`;
+
+const StyledDropdown = styled(Dropdown)`
+  /*
+    We use this font family to show emoji flags
+    on windows devices
+  */
+  .left-icon-wrapper {
+    font-family: "Twemoji Country Flags";
+  }
 `;
 
 export const PopoverStyles = createGlobalStyle<{
@@ -112,8 +124,8 @@ export const PopoverStyles = createGlobalStyle<{
     }
 
     .${props.portalClassName}  .${Classes.INPUT}:focus, .${
-    props.portalClassName
-  }  .${Classes.INPUT}:active {
+      props.portalClassName
+    }  .${Classes.INPUT}:active {
       box-shadow: 0px 0px 0px 2px ${lightenColor(props.accentColor)} !important;
       border: 1px solid ${props.accentColor} !important;
     }
@@ -192,9 +204,11 @@ export const getSelectedISDCode = (dialCode?: string): DropdownOption => {
   let selectedCountry: ISDCodeProps | undefined = ISDCodeOptions.find(
     (item: ISDCodeProps) => item.dial_code === dialCode,
   );
+
   if (!selectedCountry) {
     selectedCountry = getDefaultISDCode();
   }
+
   return {
     label: `${selectedCountry.name} (${selectedCountry.dial_code})`,
     searchText: selectedCountry.name,
@@ -235,6 +249,7 @@ export default function ISDCodeDropdown(props: ISDCodeDropdownProps) {
       className={`t--input-country-code-change isd-change-dropdown-trigger ${
         !props.allowDialCodeChange ? "country-type-trigger" : ""
       }`}
+      data-tabbable={false}
       disabled={props.disabled}
       tabIndex={0}
       type="button"
@@ -252,12 +267,14 @@ export default function ISDCodeDropdown(props: ISDCodeDropdownProps) {
       )}
     </DropdownTriggerIconWrapper>
   );
+
   if (props.disabled || !props.allowDialCodeChange) {
     return dropdownTrigger;
   }
+
   return (
     <>
-      <Dropdown
+      <StyledDropdown
         closeOnSpace={false}
         containerClassName="country-type-filter"
         dropdownHeight="139px"
@@ -265,10 +282,10 @@ export default function ISDCodeDropdown(props: ISDCodeDropdownProps) {
         enableSearch
         height="36px"
         onSelect={props.onISDCodeChange}
-        optionWidth="340px"
+        optionWidth="360px"
         options={props.options}
         portalClassName={`country-type-filter-dropdown-${props.widgetId}`}
-        portalContainer={document.getElementById("art-board") || undefined}
+        portalContainer={document.getElementById(CANVAS_ART_BOARD) || undefined}
         searchAutoFocus
         searchPlaceholder="Search by ISD code or country"
         selected={props.selected}
